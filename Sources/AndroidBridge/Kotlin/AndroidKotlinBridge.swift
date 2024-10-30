@@ -14,8 +14,11 @@ func getJavaSystemProperty(_ name: String) -> String? {
 
 // SKIP @BridgeToSwift
 public class AndroidContext {
-    #if SKIP
-    public static let shared: AndroidContext = AndroidContext(context: ProcessInfo.processInfo.androidContext)
+    #if !SKIP
+    /// In non-Skip environments, AndroidContext is nil
+    public static let shared: AndroidContext? = nil
+    #else
+    public static let shared: AndroidContext? = AndroidContext(context: ProcessInfo.processInfo.androidContext)
 
     private let context: android.content.Context
 

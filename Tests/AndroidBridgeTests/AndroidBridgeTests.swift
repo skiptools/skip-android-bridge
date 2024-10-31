@@ -22,10 +22,13 @@ final class AndroidBridgeTests: XCTestCase {
 
     func testAndroidBridge() throws {
         let mode = testSupport_isSkipMode()
+        let tmpdir = testSupport_getJavaSystemProperty("java.io.tmpdir")
         #if SKIP
-        XCTAssertEqual(1, mode, "@BridgeToSwift should be transpiled")
+        //XCTAssertEqual("/data/user/0/android.bridge.test/cache", tmpdir)
+        XCTAssertEqual(isRobolectric ? 0 : 1, mode, "@BridgeToSwift should be transpiled: \(mode)")
         #else
-        XCTAssertEqual(0, mode, "@BridgeToSwift should NOT be transpiled")
+        //XCTAssertEqual(nil, tmpdir)
+        XCTAssertEqual(0, mode, "@BridgeToSwift should NOT be transpiled: \(mode)")
         #endif
 
         logger.log("running testSkipAndroidBridge")

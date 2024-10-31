@@ -12,7 +12,17 @@ import SkipBridge
 
 // SKIP @BridgeToKotlin
 func testSupport_isSkipMode() -> Int32 {
-    isSkipMode()
+    #if SKIP
+    fatalError("testSupport_isSkipMode should never be transpiled")
+    return -1 // this should NEVER be transpiled
+    #else
+    return isSkipMode()
+    #endif
+}
+
+// SKIP @BridgeToKotlin
+func testSupport_getJavaSystemProperty(_ name: String) -> String? {
+    getJavaSystemProperty(name)
 }
 
 // SKIP @BridgeToKotlin

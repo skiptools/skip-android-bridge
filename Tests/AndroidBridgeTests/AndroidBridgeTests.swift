@@ -1,3 +1,5 @@
+// Copyright 2024 Skip
+//
 // This is free software: you can redistribute and/or modify it
 // under the terms of the GNU Lesser General Public License 3.0
 // as published by the Free Software Foundation https://fsf.org
@@ -19,11 +21,22 @@ final class AndroidBridgeTests: XCTestCase {
     }
 
     func testAndroidBridge() throws {
-        logger.log("running testSkipAndroidBridge")
+        let mode = testSupport_isSkipMode()
         #if SKIP
-        XCTAssertNotNil(AndroidContext.shared)
+        XCTAssertEqual(1, mode, "@BridgeToSwift should be transpiled")
         #else
-        XCTAssertNil(AndroidContext.shared)
+        XCTAssertEqual(0, mode, "@BridgeToSwift should NOT be transpiled")
+        #endif
+
+        logger.log("running testSkipAndroidBridge")
+        let context = testSupport_getAndroidContext()
+        #if !SKIP
+        XCTAssertNil(context)
+        #else
+        XCTAssertNotNil(ProcessInfo.processInfo.androidContext, "ProcessInfo.processInfo.androidContext was nil")
+        XCTAssertNotNil(context, "bridged context was nil")
+        XCTAssertEqual("/data/user/0/android.bridge.test/files", context.filesDir)
+        XCTAssertEqual("/data/user/0/android.bridge.test/cache", context.cacheDir)
         #endif
     }
 }

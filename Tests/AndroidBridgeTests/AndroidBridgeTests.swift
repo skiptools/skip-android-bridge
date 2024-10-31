@@ -37,9 +37,11 @@ final class AndroidBridgeTests: XCTestCase {
         XCTAssertNil(context)
         #else
         XCTAssertNotNil(ProcessInfo.processInfo.androidContext, "ProcessInfo.processInfo.androidContext was nil")
-        XCTAssertNotNil(context, "bridged context was nil")
-        XCTAssertEqual("/data/user/0/android.bridge.test/files", context.filesDir)
-        XCTAssertEqual("/data/user/0/android.bridge.test/cache", context.cacheDir)
+        if !isRobolectric {
+            XCTAssertNotNil(context, "bridged context was nil")
+            XCTAssertEqual("/data/user/0/android.bridge.test/files", context.filesDir)
+            XCTAssertEqual("/data/user/0/android.bridge.test/cache", context.cacheDir)
+        }
         #endif
     }
 }

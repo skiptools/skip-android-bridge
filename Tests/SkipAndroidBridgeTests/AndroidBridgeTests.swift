@@ -44,8 +44,8 @@ final class AndroidBridgeTests: XCTestCase {
         // Robolectric's files folder is tough to predict /var/folders/zl/wkdjv4s1271fbm6w0plzknkh0000gn/T/robolectric-AndroidBridgeTests_testAndroidBridge_SkipAndroidBridge_debugUnitTest10131350412654065418/skip.android.bridge.test-dataDir/files
         if !isRobolectric {
             // …but Android is predictable
-            XCTAssertEqual("/data/user/0/skip.android.bridge.test/files", filesDir)
-            XCTAssertEqual("/data/user/0/skip.android.bridge.test/cache", cacheDir)
+            XCTAssertEqual("/data/user/0/skip.android.bridge.test/files", filesDir.path)
+            XCTAssertEqual("/data/user/0/skip.android.bridge.test/cache", cacheDir.path)
         }
 
         // make sure we can read and write to the filesDir

@@ -6,7 +6,7 @@
 
 import Foundation
 
-#if !SKIP_BRIDGE
+//#if !SKIP_BRIDGE
 
 // SKIP @BridgeToSwift
 public func isAndroidBridgeToSwiftTranspiled() -> Int64 {
@@ -83,4 +83,4 @@ public class AndroidContext {
     }
 }
 
-#endif
+//#endif

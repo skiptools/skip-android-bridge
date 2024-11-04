@@ -5,26 +5,30 @@
 // as published by the Free Software Foundation https://fsf.org
 
 import Foundation
-//#if canImport(AndroidNative)
-//@_exported import AndroidNative
-//#elseif canImport(OSLog)
-//@_exported import OSLog
-//#endif
-//
-//fileprivate let logger: Logger = Logger(subsystem: "AndroidBridge", category: "AndroidKotlinBridge")
 
+#if !SKIP_BRIDGE
 
 // SKIP @BridgeToSwift
-func isSkipMode() -> Int32 {
+public func isAndroidBridgeToSwiftTranspiled() -> Int64 {
     #if SKIP
+    //if ({ true })() { return 1 } else { return 123 }
     return 1
     #else
-    return 0
+    return -2
     #endif
 }
 
 // SKIP @BridgeToSwift
-func getJavaSystemProperty(_ name: String) -> String? {
+public func getJavaSystemProperties() -> String? {
+    #if SKIP
+    return java.lang.System.getProperties().toString()
+    #else
+    return nil
+    #endif
+}
+
+// SKIP @BridgeToSwift
+public func getJavaSystemProperty(_ name: String) -> String? {
     #if SKIP
     return java.lang.System.getProperty(name)
     #else   
@@ -78,3 +82,5 @@ public class AndroidContext {
         #endif
     }
 }
+
+#endif

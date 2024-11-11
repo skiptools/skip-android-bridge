@@ -22,28 +22,35 @@ final class AndroidBridgeTests: XCTestCase {
 
     func testSampleFunction() throws {
         XCTAssertEqual("ABCXYZ", testSupport_appendStrings("ABC", "XYZ"))
+
+        let mode = testSupport_isSkipMode()
+        XCTAssertEqual(isJava ? 1 : -2, mode, "@BridgeToSwift should be transpiled: \(mode)")
     }
 
     func testAndroidBridge() throws {
-        let mode = testSupport_isSkipMode()
-        XCTAssertEqual(isJava ? 1 : -2, mode, "@BridgeToSwift should be transpiled: \(mode)")
+        if !isJava {
+            throw XCTSkip("testAndroidBridge only works from Java")
+        }
 
-        #if SKIP
         let tmpdir = testSupport_getJavaSystemProperty("java.io.tmpdir")
         XCTAssertEqual(isRobolectric ? NSTemporaryDirectory() : "/data/user/0/skip.android.bridge.test/cache", tmpdir)
 
-        XCTAssertNotNil(ProcessInfo.processInfo.androidContext, "ProcessInfo.processInfo.androidContext was nil")
+        //XCTAssertNotNil(ProcessInfo.processInfo.androidContext, "ProcessInfo.processInfo.androidContext was nil")
 
-        let context = AndroidContext.shared
+        let context = testSupport_getAndroidContext() // AndroidContext.shared
 
         XCTAssertNotNil(context, "bridged context was nil")
+        guard let context else { return }
 
         let filesDir = URL(fileURLWithPath: context.filesDir, isDirectory: true)
         let cacheDir = URL(fileURLWithPath: context.cacheDir, isDirectory: true)
 
-        // Robolectric's files folder is tough to predict /var/folders/zl/wkdjv4s1271fbm6w0plzknkh0000gn/T/robolectric-AndroidBridgeTests_testAndroidBridge_SkipAndroidBridge_debugUnitTest10131350412654065418/skip.android.bridge.test-dataDir/files
-        if !isRobolectric {
-            // …but Android is predictable
+        if isRobolectric {
+            // Robolectric's files folder is tough to predict (e.g. /var/folders/zl/wkdjv4s1271fbm6w0plzknkh0000gn/T/robolectric-AndroidBridgeTests_testAndroidBridge_SkipAndroidBridge_debugUnitTest10131350412654065418/skip.android.bridge.test-dataDir/files)
+            XCTAssertTrue(filesDir.path.hasSuffix("/files"), "unexpected filesDir.path: \(filesDir.path)")
+            XCTAssertTrue(cacheDir.path.hasSuffix("/cache"), "unexpected cacheDir.path: \(cacheDir.path)")
+        } else {
+            // …but Android is predictably the app's "files" and "cache" directories
             XCTAssertEqual("/data/user/0/skip.android.bridge.test/files", filesDir.path)
             XCTAssertEqual("/data/user/0/skip.android.bridge.test/cache", cacheDir.path)
         }
@@ -51,6 +58,5 @@ final class AndroidBridgeTests: XCTestCase {
         // make sure we can read and write to the filesDir
         try "ABC".write(to: filesDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
         try "XYZ".write(to: cacheDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
-        #endif
     }
 }

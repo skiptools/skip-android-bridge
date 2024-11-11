@@ -6,8 +6,6 @@
 
 import Foundation
 
-//#if !SKIP_BRIDGE
-
 // SKIP @BridgeToSwift
 public func isAndroidBridgeToSwiftTranspiled() -> Int64 {
     #if SKIP
@@ -38,11 +36,11 @@ public func getJavaSystemProperty(_ name: String) -> String? {
 
 // SKIP @BridgeToSwift
 public func getAndroidContext() -> AndroidContext? {
-    //logger.warning("### getAndroidContext invoked")
+    //logger.warning("getAndroidContext invoked")
     #if SKIP
     return AndroidContext(context: ProcessInfo.processInfo.androidContext)
     #else
-    //fatalError("### getAndroidContext should only be called through Kotlin")
+    //fatalError("getAndroidContext should only be called through Kotlin")
     return nil
     #endif
 }
@@ -51,7 +49,7 @@ public func getAndroidContext() -> AndroidContext? {
 public class AndroidContext {
     #if !SKIP
     /// In non-Skip environments, AndroidContext is nil
-    public static let shared: AndroidContext! = nil
+    public static var shared: AndroidContext! = nil
     #else
     public static let shared: AndroidContext = AndroidContext(context: ProcessInfo.processInfo.androidContext)
 
@@ -82,5 +80,3 @@ public class AndroidContext {
         #endif
     }
 }
-
-//#endif

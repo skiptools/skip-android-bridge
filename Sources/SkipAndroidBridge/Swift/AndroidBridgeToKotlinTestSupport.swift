@@ -37,7 +37,7 @@ func testSupport_getJavaSystemProperty(_ name: String) -> String? {
 }
 
 // SKIP @BridgeToKotlin
-func testSupport_getAndroidContext() -> AndroidContext! {
+func testSupport_getAndroidContext() -> AndroidContext {
     #if SKIP
     fatalError("testSupport_getAndroidContext should never be transpiled")
     #else

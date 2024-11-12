@@ -39,7 +39,7 @@ public class AndroidBridgeKotlin {
 /// - Using the Android certificate store for HTTPS validation
 /// - Using the AndroidContext files locations for `FileManager.url`
 // SKIP @BridgeToKotlin
-public func initAndroidBridge() throws {
+func initAndroidBridge() throws {
     if androidBridgeInit == true { return }
     defer { androidBridgeInit = true }
 

@@ -4,48 +4,9 @@
 // under the terms of the GNU Lesser General Public License 3.0
 // as published by the Free Software Foundation https://fsf.org
 
+#if !SKIP_BRIDGE
 import Foundation
 
-// SKIP @BridgeToSwift
-public func isAndroidBridgeToSwiftTranspiled() -> Int64 {
-    #if SKIP
-    //if ({ true })() { return 1 } else { return 123 }
-    return 1
-    #else
-    return -2
-    #endif
-}
-
-// SKIP @BridgeToSwift
-public func getJavaSystemProperties() -> String? {
-    #if SKIP
-    return java.lang.System.getProperties().toString()
-    #else
-    return nil
-    #endif
-}
-
-// SKIP @BridgeToSwift
-public func getJavaSystemProperty(_ name: String) -> String? {
-    #if SKIP
-    return java.lang.System.getProperty(name)
-    #else   
-    return nil
-    #endif
-}
-
-// SKIP @BridgeToSwift
-public func getAndroidContext() -> AndroidContext? {
-    //logger.warning("getAndroidContext invoked")
-    #if SKIP
-    return AndroidContext(context: ProcessInfo.processInfo.androidContext)
-    #else
-    //fatalError("getAndroidContext should only be called through Kotlin")
-    return nil
-    #endif
-}
-
-// SKIP @BridgeToSwift
 public class AndroidContext {
     #if !SKIP
     /// In non-Skip environments, AndroidContext is nil
@@ -80,3 +41,13 @@ public class AndroidContext {
         #endif
     }
 }
+
+public func getJavaSystemProperty(_ name: String) -> String? {
+    #if SKIP
+    return java.lang.System.getProperty(name)
+    #else
+    return nil
+    #endif
+}
+
+#endif

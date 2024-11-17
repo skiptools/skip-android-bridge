@@ -7,7 +7,7 @@
 import XCTest
 import OSLog
 import Foundation
-import SkipBridge
+import SkipBridgeKt
 @testable import SkipAndroidBridge
 
 let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "Tests")
@@ -22,9 +22,6 @@ final class AndroidBridgeTests: XCTestCase {
 
     func testSampleFunction() throws {
         XCTAssertEqual("ABCXYZ", testSupport_appendStrings("ABC", "XYZ"))
-
-        let mode = testSupport_isSkipMode()
-        XCTAssertEqual(isJava ? 1 : -2, mode, "@BridgeToSwift should be transpiled: \(mode)")
     }
 
     func testAndroidBridge() throws {
@@ -35,12 +32,13 @@ final class AndroidBridgeTests: XCTestCase {
         let tmpdir = testSupport_getJavaSystemProperty("java.io.tmpdir")
         XCTAssertEqual(isRobolectric ? NSTemporaryDirectory() : "/data/user/0/skip.android.bridge.test/cache", tmpdir)
 
-        //XCTAssertNotNil(ProcessInfo.processInfo.androidContext, "ProcessInfo.processInfo.androidContext was nil")
+        #if SKIP
+        XCTAssertNotNil(ProcessInfo.processInfo.androidContext, "ProcessInfo.processInfo.androidContext was nil")
+        #endif
 
         let context = testSupport_getAndroidContext() // AndroidContext.shared
 
         XCTAssertNotNil(context, "bridged context was nil")
-        guard let context else { return }
 
         let filesDir = URL(fileURLWithPath: context.filesDir, isDirectory: true)
         let cacheDir = URL(fileURLWithPath: context.cacheDir, isDirectory: true)
@@ -58,5 +56,7 @@ final class AndroidBridgeTests: XCTestCase {
         // make sure we can read and write to the filesDir
         try "ABC".write(to: filesDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
         try "XYZ".write(to: cacheDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
+
+        try AndroidBridgeKotlin.initAndroidBridge()
     }
 }

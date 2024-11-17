@@ -4,7 +4,9 @@
 // under the terms of the GNU Lesser General Public License 3.0
 // as published by the Free Software Foundation https://fsf.org
 
+#if !SKIP
 import Foundation
+import SkipAndroidSDKBridge
 @_exported import SkipBridge
 #if canImport(FoundationNetworking)
 @_exported import FoundationNetworking
@@ -16,6 +18,7 @@ import Foundation
 #endif
 
 fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridgeToKotlin")
+#endif
 
 #if os(Android)
 public let isAndroid = true
@@ -26,64 +29,40 @@ public let isAndroid = false
 
 private var androidBridgeInit = false
 
-// SKIP @BridgeToKotlin
 public class AndroidBridgeKotlin {
-    public init() {
-    }
+    /// Perform all the setup that is needed to get `Foundation` idioms working with Android conventions.
+    ///
+    /// This includes:
+    /// - Using the Android certificate store for HTTPS validation
+    /// - Using the AndroidContext files locations for `FileManager.url`
+    public static func initAndroidBridge() throws {
+        if androidBridgeInit == true { return }
+        defer { androidBridgeInit = true }
 
-}
-
-/// Perform all the setup that is needed to get `Foundation` idioms working with Android conventions.
-///
-/// This includes:
-/// - Using the Android certificate store for HTTPS validation
-/// - Using the AndroidContext files locations for `FileManager.url`
-// SKIP @BridgeToKotlin
-func initAndroidBridge() throws {
-    if androidBridgeInit == true { return }
-    defer { androidBridgeInit = true }
-
-    let start = Date.now
-    logger.log("initAndroidBridge started")
-    #if os(Android)
-    #if !SKIP
-    try setupFileManagerProperties(context: AndroidContext.shared)
-    try installSystemCertificates()
-    #endif
-    #endif
-    logger.log("initAndroidBridge done in \(Date.now.timeIntervalSince(start))")
-}
-
-
-// URL.applicationSupportDirectory exists in Darwin's Foundation but not in Android's Foundation
-#if os(Android)
-extension URL {
-    public static var applicationSupportDirectory: URL {
-        try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-    }
-    
-    public static var cachesDirectory: URL {
-        try! FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+        let start = Date.now
+        logger.log("initAndroidBridge started")
+        guard let context = AndroidContext.shared as AndroidContext? else {
+            fatalError("no AndroidContext.shared")
+        }
+        #if os(Android)
+        try setupFileManagerProperties(filesDir: context.filesDir, cacheDir: context.cacheDir)
+        try installSystemCertificates()
+        #endif
+        logger.log("initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
     }
 }
-#endif
 
-#if !SKIP
-private func setupFileManagerProperties(context: AndroidContext?) throws {
-    guard let context else { return }
-    let filesDir = context.filesDir
-    let cacheDir = context.cacheDir
 
+private func setupFileManagerProperties(filesDir: String, cacheDir: String) throws {
     // https://github.com/swiftlang/swift-foundation/blob/main/Sources/FoundationEssentials/FileManager/SearchPaths/FileManager%2BXDGSearchPaths.swift#L46
     setenv("XDG_CACHE_HOME", cacheDir, 1)
     // https://github.com/swiftlang/swift-foundation/blob/main/Sources/FoundationEssentials/FileManager/SearchPaths/FileManager%2BXDGSearchPaths.swift#L37
     setenv("XDG_DATA_HOME", filesDir, 1)
 
-    // ensure that we can get the `.applicationSupportDirectory`, which should use the `XDG_DATA_HOME` envrionment
+    // ensure that we can get the `.applicationSupportDirectory`, which should use the `XDG_DATA_HOME` environment
     //let applicationSupportDirectory = URL.applicationSupportDirectory // unavailable on Android
     let applicationSupportDirectory = try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
     logger.debug("setupFileManagerProperties: applicationSupportDirectory=\(applicationSupportDirectory.path)")
-
 }
 
 /// Collects all the certificate files from the Android certificate store and writes them to a single `cacerts.pem` file that can be used by libcurl,
@@ -136,5 +115,16 @@ private func installSystemCertificates(fromCertficateFolders certsFolders: [Stri
     //setenv("URLSessionCertificateAuthorityInfoFile", "/system/etc/security/cacerts/", 1) // doesn't work for directories
     setenv("URLSessionCertificateAuthorityInfoFile", generatedCacertsURL.path, 1)
 }
-#endif
 
+// URL.applicationSupportDirectory exists in Darwin's Foundation but not in Android's Foundation
+#if os(Android)
+extension URL {
+    public static var applicationSupportDirectory: URL {
+        try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+    }
+
+    public static var cachesDirectory: URL {
+        try! FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+    }
+}
+#endif

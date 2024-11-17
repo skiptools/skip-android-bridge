@@ -11,10 +11,10 @@ let package = Package(
         .library(name: "SkipAndroidSDKBridge", type: .dynamic, targets: ["SkipAndroidSDKBridge"]),
     ],
     dependencies: [
-        .package(url: "https://source.skip.tools/skip.git", branch: "main"),
+        .package(url: "https://source.skip.tools/skip.git", from: "1.0.0"),
         .package(url: "https://source.skip.tools/skip-foundation.git", from: "1.0.0"),
-        .package(url: "https://source.skip.tools/skip-bridge.git", branch: "main"),
-        .package(url: "https://source.skip.tools/swift-android-native.git", branch: "main")
+        .package(url: "https://source.skip.tools/skip-bridge.git", "0.0.0"..<"2.0.0"),
+        .package(url: "https://source.skip.tools/swift-android-native.git", "0.0.0"..<"2.0.0")
     ],
     targets: [
         // mode=kotlin

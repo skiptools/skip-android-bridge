@@ -14,3 +14,7 @@ permissions:
 jobs:
   call-workflow:
     uses: skiptools/actions/.github/workflows/skip-framework.yml@main
+    with:
+      # disable export because there are currently problems with shared PCH module cache files with multi-module native export
+      run-export: false
+

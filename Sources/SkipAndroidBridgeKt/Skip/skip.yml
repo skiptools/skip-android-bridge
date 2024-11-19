@@ -1,3 +1,2 @@
-#skip:
-#  mode: 'kotlin'
-#  bridging: true
+skip:
+  mode: 'transpiled'

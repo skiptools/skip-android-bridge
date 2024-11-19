@@ -45,6 +45,7 @@ public class AndroidBridgeKotlin {
             fatalError("no AndroidContext.shared")
         }
         #if os(Android)
+        try setupTimezone()
         try setupFileManagerProperties(filesDir: context.filesDir, cacheDir: context.cacheDir)
         try installSystemCertificates()
         #endif
@@ -52,6 +53,18 @@ public class AndroidBridgeKotlin {
     }
 }
 
+private func setupTimezone() {
+    // Until https://github.com/swiftlang/swift-foundation/pull/1053 gets merged
+    tzset()
+    var t = time(nil)
+    var lt : tm = tm()
+    localtime_r(&t, &lt)
+    if let zoneptr = lt.tm_zone, let name = String(validatingUTF8: zoneptr) {
+        //logger.debug("detected timezone: \(name)")
+        setenv("TZ", name, 0)
+    }
+
+}
 
 private func setupFileManagerProperties(filesDir: String, cacheDir: String) throws {
     // https://github.com/swiftlang/swift-foundation/blob/main/Sources/FoundationEssentials/FileManager/SearchPaths/FileManager%2BXDGSearchPaths.swift#L46

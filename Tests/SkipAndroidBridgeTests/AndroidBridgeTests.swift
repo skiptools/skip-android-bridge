@@ -57,6 +57,6 @@ final class AndroidBridgeTests: XCTestCase {
         try "ABC".write(to: filesDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
         try "XYZ".write(to: cacheDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
 
-        try AndroidBridgeKotlin.initAndroidBridge()
+        try AndroidBridgeBootstrap.initAndroidBridge()
     }
 }

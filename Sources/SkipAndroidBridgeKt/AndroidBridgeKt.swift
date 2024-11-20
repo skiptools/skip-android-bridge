@@ -14,7 +14,7 @@ fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category
 /// The entry point from a Kotlin Main.kt into the bridged `SkipAndroidBridge`.
 ///
 /// This class handles the initial Kotlin-side setup of the Swift bridging, which currently
-/// just involves loading the specific library and calling the Swift `AndroidBridgeKotlin.initAndroidBridge()`,
+/// just involves loading the specific library and calling the Swift `AndroidBridgeBootstrap.initAndroidBridge()`,
 /// which will, in turn, perform all the Foundation-level setup.
 public class AndroidBridge {
     /// This is called at app initialization time, typically from the `Main.kt`
@@ -25,7 +25,7 @@ public class AndroidBridge {
         ProcessInfo.launch(context)
         logger.debug("loading library: \(libraryName)")
         try System.loadLibrary(libraryName)
-        try AndroidBridgeKotlin.initAndroidBridge()
+        try AndroidBridgeBootstrap.initAndroidBridge()
     }
 }
 #endif

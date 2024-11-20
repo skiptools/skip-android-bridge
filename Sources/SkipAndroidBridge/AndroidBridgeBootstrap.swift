@@ -20,7 +20,7 @@ import SkipAndroidSDKBridge
 fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridgeToKotlin")
 #endif
 
-#if os(Android)
+#if os(Android) || ROBOLECTRIC
 public let isAndroid = true
 #else
 public let isAndroid = false
@@ -29,7 +29,7 @@ public let isAndroid = false
 
 private var androidBridgeInit = false
 
-public class AndroidBridgeKotlin {
+public class AndroidBridgeBootstrap {
     /// Perform all the setup that is needed to get `Foundation` idioms working with Android conventions.
     ///
     /// This includes:
@@ -44,16 +44,18 @@ public class AndroidBridgeKotlin {
         guard let context = AndroidContext.shared as AndroidContext? else {
             fatalError("no AndroidContext.shared")
         }
-        #if os(Android)
-        try setupTimezone()
-        try setupFileManagerProperties(filesDir: context.filesDir, cacheDir: context.cacheDir)
-        try installSystemCertificates()
+        #if os(Android) || ROBOLECTRIC
+        try bootstrapFileManagerProperties(filesDir: context.filesDir, cacheDir: context.cacheDir)
         #endif
-        logger.log("initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
+        #if os(Android)
+        try bootstrapTimezone()
+        try bootstrapSSLCertificates()
+        #endif
+        logger.log("AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
     }
 }
 
-private func setupTimezone() {
+private func bootstrapTimezone() {
     // Until https://github.com/swiftlang/swift-foundation/pull/1053 gets merged
     tzset()
     var t = time(nil)
@@ -66,16 +68,20 @@ private func setupTimezone() {
 
 }
 
-private func setupFileManagerProperties(filesDir: String, cacheDir: String) throws {
+private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) throws {
     // https://github.com/swiftlang/swift-foundation/blob/main/Sources/FoundationEssentials/FileManager/SearchPaths/FileManager%2BXDGSearchPaths.swift#L46
-    setenv("XDG_CACHE_HOME", cacheDir, 1)
+    setenv("XDG_CACHE_HOME", cacheDir, 0)
     // https://github.com/swiftlang/swift-foundation/blob/main/Sources/FoundationEssentials/FileManager/SearchPaths/FileManager%2BXDGSearchPaths.swift#L37
-    setenv("XDG_DATA_HOME", filesDir, 1)
+    setenv("XDG_DATA_HOME", filesDir, 0)
+
+    // Also set the environment needed for UserDefaults to be able to persist to the filesystem
+    // https://github.com/swiftlang/swift-corelibs-foundation/blob/main/Sources/CoreFoundation/CFPlatform.c#L331C66-L331C83
+    setenv("CFFIXED_USER_HOME", filesDir, 0)
 
     // ensure that we can get the `.applicationSupportDirectory`, which should use the `XDG_DATA_HOME` environment
     //let applicationSupportDirectory = URL.applicationSupportDirectory // unavailable on Android
     let applicationSupportDirectory = try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-    logger.debug("setupFileManagerProperties: applicationSupportDirectory=\(applicationSupportDirectory.path)")
+    logger.debug("bootstrapFileManagerProperties: applicationSupportDirectory=\(applicationSupportDirectory.path)")
 }
 
 /// Collects all the certificate files from the Android certificate store and writes them to a single `cacerts.pem` file that can be used by libcurl,
@@ -83,7 +89,7 @@ private func setupFileManagerProperties(filesDir: String, cacheDir: String) thro
 ///
 /// See https://android.googlesource.com/platform/frameworks/base/+/8b192b19f264a8829eac2cfaf0b73f6fc188d933%5E%21/#F0
 /// See https://github.com/apple/swift-nio-ssl/blob/d1088ebe0789d9eea231b40741831f37ab654b61/Sources/NIOSSL/AndroidCABundle.swift#L30
-private func installSystemCertificates(fromCertficateFolders certsFolders: [String] = ["/system/etc/security/cacerts", "/apex/com.android.conscrypt/cacerts"]) throws {
+private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [String] = ["/system/etc/security/cacerts", "/apex/com.android.conscrypt/cacerts"]) throws {
     //let cacheFolder = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true) // file:////.cache/ (unwritable)
     let cacheFolder = FileManager.default.temporaryDirectory
     let generatedCacertsURL = cacheFolder.appendingPathComponent("cacerts-\(UUID().uuidString).pem")
@@ -117,7 +123,7 @@ private func installSystemCertificates(fromCertficateFolders certsFolders: [Stri
                 if try certURL.resourceValues(forKeys: [.isReadableKey]).isReadable == false { continue }
                 try fs.write(contentsOf: try Data(contentsOf: certURL))
             } catch {
-                logger.warning("installSystemCertificates: error reading certificate file \(certURL.path): \(error)")
+                logger.warning("bootstrapSSLCertificates: error reading certificate file \(certURL.path): \(error)")
                 continue
             }
         }
@@ -141,3 +147,89 @@ extension URL {
     }
 }
 #endif
+
+extension UserDefaults {
+    // TODO: we can't do this because there will be an `ambiguous use` error
+//    #if os(Android) || ROBOLECTRIC
+//    public static var standard: UserDefaults {
+//        AndroidSharedPreferencesUserDefaults._bridged
+//    }
+//    #endif
+
+    /// On Darwin platforms, this just returns `UserDefaults.standard`, and on Android it will return a bridge to the `SharedPreferences` for the app.
+    public static var bridged: UserDefaults {
+        #if os(Android) || ROBOLECTRIC
+        AndroidSharedPreferencesUserDefaults._bridged
+        #else
+        UserDefaults.standard
+        #endif
+    }
+}
+
+internal class AndroidSharedPreferencesUserDefaults : UserDefaults {
+    static let _bridged = AndroidSharedPreferencesUserDefaults(AndroidUserDefaults.standard)
+
+    private let bridgedDefaults: AndroidUserDefaults
+
+    private init(_ bridgedDefaults: AndroidUserDefaults) {
+        self.bridgedDefaults = bridgedDefaults
+        super.init(suiteName: nil)!
+    }
+
+    override func set(_ value: Double, forKey defaultName: String) {
+        bridgedDefaults.setDouble(value, forKey: defaultName)
+    }
+
+    override func double(forKey defaultName: String) -> Double {
+        bridgedDefaults.double(forKey: defaultName)
+    }
+
+    // not implemented in skip.foundation.UserDefaults for some reason
+//    override func set(_ value: Float, forKey defaultName: String) {
+//        bridgedDefaults.setFloat(value, forKey: defaultName)
+//    }
+//
+//    override func float(forKey defaultName: String) -> Float {
+//        bridgedDefaults.float(forKey: defaultName)
+//    }
+
+    override func set(_ value: Bool, forKey defaultName: String) {
+        bridgedDefaults.setBool(value, forKey: defaultName)
+    }
+
+    override func bool(forKey defaultName: String) -> Bool {
+        bridgedDefaults.bool(forKey: defaultName)
+    }
+
+    override func set(_ value: Int, forKey defaultName: String) {
+        bridgedDefaults.setInt(value, forKey: defaultName)
+    }
+
+    override func integer(forKey defaultName: String) -> Int {
+        bridgedDefaults.integer(forKey: defaultName)
+    }
+
+    override func set(_ value: Any?, forKey defaultName: String) {
+        if let value = value as? String? {
+            bridgedDefaults.setString(value, forKey: defaultName)
+        } else if let value = value as? Data? {
+            bridgedDefaults.setData(value, forKey: defaultName)
+        } else if let value = value as? Double {
+            bridgedDefaults.setDouble(value, forKey: defaultName)
+//        } else if let value = value as? Float {
+//            bridgedDefaults.setFloat(value, forKey: defaultName)
+        } else if let value = value as? Bool {
+            bridgedDefaults.setBool(value, forKey: defaultName)
+        } else if let value = value as? Int {
+            bridgedDefaults.setInt(value, forKey: defaultName)
+        }
+    }
+
+    override func string(forKey defaultName: String) -> String? {
+        bridgedDefaults.string(forKey: defaultName)
+    }
+
+    override func data(forKey defaultName: String) -> Data? {
+        bridgedDefaults.data(forKey: defaultName)
+    }
+}

@@ -17,14 +17,19 @@ fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category
 /// just involves loading the specific library and calling the Swift `AndroidBridgeBootstrap.initAndroidBridge()`,
 /// which will, in turn, perform all the Foundation-level setup.
 public class AndroidBridge {
-    /// This is called at app initialization time, typically from the `Main.kt`
+    /// This is called at app initialization time by reflection from the `Main.kt`
     ///
-    /// It will look like: `skip.android.bridge.kt.AndroidBridge.initBridge(this, "AppDroidModel")`
-    public static func initBridge(app: android.app.Application, _ libraryName: String) throws {
-        let context = app.applicationContext
-        ProcessInfo.launch(context)
-        logger.debug("loading library: \(libraryName)")
-        try System.loadLibrary(libraryName)
+    /// It will look like: `skip.android.bridge.kt.AndroidBridge.initBridge("AppDroidModel")`
+    public static func initBridge(_ libraryNames: String) throws {
+        for libraryName in libraryNames.split(separator: ",") {
+            do {
+                logger.debug("loading library: \(libraryName)")
+                try System.loadLibrary(libraryName)
+            } catch {
+                android.util.Log.e("SkipBridge", "error loading bridge library: \(libraryName)", error as? ErrorException)
+            }
+        }
+
         try AndroidBridgeBootstrap.initAndroidBridge()
     }
 }

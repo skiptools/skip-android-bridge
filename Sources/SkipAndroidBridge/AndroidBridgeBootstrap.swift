@@ -55,7 +55,7 @@ public class AndroidBridgeBootstrap {
     }
 }
 
-private func bootstrapTimezone() {
+private func bootstrapTimezone() throws {
     // Until https://github.com/swiftlang/swift-foundation/pull/1053 gets merged
     tzset()
     var t = time(nil)
@@ -94,7 +94,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
     let cacheFolder = FileManager.default.temporaryDirectory
     let generatedCacertsURL = cacheFolder.appendingPathComponent("cacerts-\(UUID().uuidString).pem")
 
-    FileManager.default.createFile(atPath: generatedCacertsURL.path, contents: nil)
+    _ = FileManager.default.createFile(atPath: generatedCacertsURL.path, contents: nil)
     let fs = try FileHandle(forWritingTo: generatedCacertsURL)
     defer { try? fs.close() }
 

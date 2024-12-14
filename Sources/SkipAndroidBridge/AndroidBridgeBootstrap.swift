@@ -16,6 +16,14 @@ import SkipAndroidSDKBridge
 #elseif canImport(OSLog)
 @_exported import OSLog
 #endif
+#if canImport(AndroidLooper)
+@_exported import AndroidLooper
+#endif
+#if canImport(AndroidChoreographer)
+@_exported import AndroidChoreographer
+#endif
+
+import Dispatch
 
 fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridgeToKotlin")
 #endif
@@ -38,6 +46,14 @@ public class AndroidBridgeBootstrap {
     public static func initAndroidBridge() throws {
         if androidBridgeInit == true { return }
         defer { androidBridgeInit = true }
+
+        precondition(Thread.isMainThread, "initAndroidBridge must be called from main thread")
+
+        #if os(Android)
+        // set up the main thread looper; note that we do not need to do this for Robolectric, since it uses the standard CFRunLoop
+        AndroidLooper.setupMainLooper()
+        AndroidChoreographer.setupMainChoreographer()
+        #endif
 
         let start = Date.now
         logger.log("initAndroidBridge started")

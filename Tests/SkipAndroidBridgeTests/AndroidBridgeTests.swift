@@ -9,6 +9,7 @@ import OSLog
 import Foundation
 import SkipBridgeKt
 @testable import SkipAndroidBridge
+//import SkipAndroidBridgeTestsSupport
 
 let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "Tests")
 
@@ -17,6 +18,7 @@ final class AndroidBridgeTests: XCTestCase {
     override func setUp() {
         #if SKIP
         loadPeerLibrary(packageName: "skip-android-bridge", moduleName: "SkipAndroidBridge")
+        //try! AndroidBridgeBootstrap.initAndroidBridge()
         #endif
     }
 
@@ -56,7 +58,11 @@ final class AndroidBridgeTests: XCTestCase {
         // make sure we can read and write to the filesDir
         try "ABC".write(to: filesDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
         try "XYZ".write(to: cacheDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
-
-        try AndroidBridgeBootstrap.initAndroidBridge()
     }
+
+//    func testMainActor() async {
+//        let mainActorSample = await MainActorSample()
+//        let result = await mainActorSample.callMainActorFunction()
+//        XCTAssertEqual("ABC", result)
+//    }
 }

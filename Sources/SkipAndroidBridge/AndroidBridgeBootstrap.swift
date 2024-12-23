@@ -137,6 +137,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
 
 // URL.applicationSupportDirectory exists in Darwin's Foundation but not in Android's Foundation
 #if os(Android)
+// SKIP @nobridge
 extension URL {
     public static var applicationSupportDirectory: URL {
         try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
@@ -148,6 +149,7 @@ extension URL {
 }
 #endif
 
+// SKIP @nobridge
 extension UserDefaults {
     // TODO: we can't do this because there will be an `ambiguous use` error
 //    #if os(Android) || ROBOLECTRIC

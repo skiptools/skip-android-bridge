@@ -16,6 +16,9 @@ import SkipAndroidSDKBridge
 #elseif canImport(OSLog)
 @_exported import OSLog
 #endif
+#if canImport(AndroidLooper)
+@_exported import AndroidLooper
+#endif
 
 fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridgeToKotlin")
 #endif
@@ -50,6 +53,7 @@ public class AndroidBridgeBootstrap {
         #if os(Android)
         try bootstrapTimezone()
         try bootstrapSSLCertificates()
+        AndroidLooper.setupMainLooper()
         #endif
         logger.log("AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
     }

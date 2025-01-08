@@ -54,11 +54,11 @@ public class AndroidUserDefaults {
         self.userDefaults = userDefaults
     }
 
-    public func setDouble(_ value: Double, forKey defaultName: String) {
+    public func setDouble(_ value: Double?, forKey defaultName: String) {
         userDefaults.set(value, forKey: defaultName)
     }
 
-    public func double(forKey defaultName: String) -> Double {
+    public func double(forKey defaultName: String) -> Double? {
         userDefaults.double(forKey: defaultName)
     }
 
@@ -71,19 +71,19 @@ public class AndroidUserDefaults {
 //        userDefaults.float(forKey: defaultName)
 //    }
 
-    public func setBool(_ value: Bool, forKey defaultName: String) {
+    public func setBool(_ value: Bool?, forKey defaultName: String) {
         userDefaults.set(value, forKey: defaultName)
     }
 
-    public func bool(forKey defaultName: String) -> Bool {
+    public func bool(forKey defaultName: String) -> Bool? {
         userDefaults.bool(forKey: defaultName)
     }
 
-    public func setInt(_ value: Int, forKey defaultName: String) {
+    public func setInt(_ value: Int?, forKey defaultName: String) {
         userDefaults.set(value, forKey: defaultName)
     }
 
-    public func integer(forKey defaultName: String) -> Int {
+    public func integer(forKey defaultName: String) -> Int? {
         userDefaults.integer(forKey: defaultName)
     }
 

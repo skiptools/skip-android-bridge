@@ -8,7 +8,6 @@ let package = Package(
     products: [
         .library(name: "SkipAndroidBridge", type: .dynamic, targets: ["SkipAndroidBridge"]),
         .library(name: "SkipAndroidBridgeKt", type: .dynamic, targets: ["SkipAndroidBridgeKt"]),
-        .library(name: "SkipAndroidSDKBridge", type: .dynamic, targets: ["SkipAndroidSDKBridge"]),
     ],
     dependencies: [
         .package(url: "https://source.skip.tools/skip.git", from: "1.2.1"),
@@ -17,16 +16,10 @@ let package = Package(
         .package(url: "https://source.skip.tools/swift-android-native.git", "0.0.0"..<"2.0.0")
     ],
     targets: [
-        // mode=kotlin
-        .target(name: "SkipAndroidSDKBridge",
-            dependencies: [
-                .product(name: "SkipBridgeKt", package: "skip-bridge"),
-                .product(name: "SkipFoundation", package: "skip-foundation"),
-            ],
-            plugins: [.plugin(name: "skipstone", package: "skip")]),
         // mode=swift
         .target(name: "SkipAndroidBridge", dependencies: [
-            "SkipAndroidSDKBridge",
+            .product(name: "SkipBridgeKt", package: "skip-bridge"),
+            .product(name: "SkipFoundation", package: "skip-foundation"),
             .product(name: "AndroidNative", package: "swift-android-native", condition: .when(platforms: [.android])),
         ], plugins: [.plugin(name: "skipstone", package: "skip")]),
         // mode=kotlin
@@ -36,18 +29,12 @@ let package = Package(
             ],
             plugins: [.plugin(name: "skipstone", package: "skip")]),
 
-        .testTarget(name: "SkipAndroidSDKBridgeTests", dependencies: [
-            "SkipAndroidSDKBridge",
-            .product(name: "SkipTest", package: "skip"),
-        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "SkipAndroidBridgeTests", dependencies: [
             "SkipAndroidBridge",
-            .product(name: "SkipBridgeKt", package: "skip-bridge"),
             .product(name: "SkipTest", package: "skip"),
         ], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "SkipAndroidBridgeKtTests", dependencies: [
             "SkipAndroidBridgeKt",
-            .product(name: "SkipBridgeKt", package: "skip-bridge"),
             .product(name: "SkipTest", package: "skip"),
         ], plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]

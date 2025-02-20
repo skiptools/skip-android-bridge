@@ -30,7 +30,8 @@ public class AndroidBridge {
             }
         }
 
-        try AndroidBridgeBootstrap.initAndroidBridge()
+        let context = ProcessInfo.processInfo.androidContext
+        try AndroidBridgeBootstrap.initAndroidBridge(filesDir: context.getFilesDir().getAbsolutePath(), cacheDir: context.getCacheDir().getAbsolutePath())
     }
 }
 #endif

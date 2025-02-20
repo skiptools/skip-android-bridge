@@ -20,28 +20,13 @@ final class AndroidBridgeTests: XCTestCase {
         #endif
     }
 
-    func testSampleFunction() throws {
-        XCTAssertEqual("ABCXYZ", testSupport_appendStrings("ABC", "XYZ"))
-    }
-
     func testAndroidBridge() throws {
-        if !isJava {
-            throw XCTSkip("testAndroidBridge only works from Java")
-        }
-
-        let tmpdir = testSupport_getJavaSystemProperty("java.io.tmpdir")
-        XCTAssertEqual(isRobolectric ? NSTemporaryDirectory() : "/data/user/0/skip.android.bridge.test/cache", tmpdir)
-
         #if SKIP
-        XCTAssertNotNil(ProcessInfo.processInfo.androidContext, "ProcessInfo.processInfo.androidContext was nil")
-        #endif
+        let context = ProcessInfo.processInfo.androidContext
+        XCTAssertNotNil(context, "ProcessInfo.processInfo.androidContext was nil")
 
-        let context = testSupport_getAndroidContext() // AndroidContext.shared
-
-        XCTAssertNotNil(context, "bridged context was nil")
-
-        let filesDir = URL(fileURLWithPath: context.filesDir, isDirectory: true)
-        let cacheDir = URL(fileURLWithPath: context.cacheDir, isDirectory: true)
+        let filesDir = URL(fileURLWithPath: context.getFilesDir().getAbsolutePath(), isDirectory: true)
+        let cacheDir = URL(fileURLWithPath: context.getCacheDir().getAbsolutePath(), isDirectory: true)
 
         if isRobolectric {
             // Robolectric's files folder is tough to predict (e.g. /var/folders/zl/wkdjv4s1271fbm6w0plzknkh0000gn/T/robolectric-AndroidBridgeTests_testAndroidBridge_SkipAndroidBridge_debugUnitTest10131350412654065418/skip.android.bridge.test-dataDir/files)
@@ -57,6 +42,9 @@ final class AndroidBridgeTests: XCTestCase {
         try "ABC".write(to: filesDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
         try "XYZ".write(to: cacheDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
 
-        try AndroidBridgeBootstrap.initAndroidBridge()
+        try AndroidBridgeBootstrap.initAndroidBridge(filesDir: filesDir.path, cacheDir: cacheDir.path)
+        #else
+        throw XCTSkip("testAndroidBridge only works from SKIP")
+        #endif
     }
 }

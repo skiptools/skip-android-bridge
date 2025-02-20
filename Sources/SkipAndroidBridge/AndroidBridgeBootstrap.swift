@@ -6,7 +6,6 @@
 
 #if !SKIP
 import Foundation
-import SkipAndroidSDKBridge
 @_exported import SkipBridge
 #if canImport(FoundationNetworking)
 @_exported import FoundationNetworking
@@ -29,26 +28,26 @@ public let isAndroid = true
 public let isAndroid = false
 #endif
 
-
 private var androidBridgeInit = false
 
+/// Called from Kotlin's `AndroidBridgeKt.AndroidBridge.initBridge` to perform setup that is needed to
+/// get `Foundation` idioms working with Android conventions.
+// SKIP @bridge
 public class AndroidBridgeBootstrap {
     /// Perform all the setup that is needed to get `Foundation` idioms working with Android conventions.
     ///
     /// This includes:
     /// - Using the Android certificate store for HTTPS validation
-    /// - Using the AndroidContext files locations for `FileManager.url`
-    public static func initAndroidBridge() throws {
+    /// - Using the Android context file locations for `FileManager.url`
+    // SKIP @bridge
+    public static func initAndroidBridge(filesDir: String, cacheDir: String) throws {
         if androidBridgeInit == true { return }
         defer { androidBridgeInit = true }
 
         let start = Date.now
         logger.log("initAndroidBridge started")
-        guard let context = AndroidContext.shared as AndroidContext? else {
-            fatalError("no AndroidContext.shared")
-        }
         #if os(Android) || ROBOLECTRIC
-        try bootstrapFileManagerProperties(filesDir: context.filesDir, cacheDir: context.cacheDir)
+        try bootstrapFileManagerProperties(filesDir: filesDir, cacheDir: cacheDir)
         #endif
         #if os(Android)
         try bootstrapTimezone()
@@ -152,90 +151,3 @@ extension URL {
     }
 }
 #endif
-
-// SKIP @nobridge
-extension UserDefaults {
-    // TODO: we can't do this because there will be an `ambiguous use` error
-//    #if os(Android) || ROBOLECTRIC
-//    public static var standard: UserDefaults {
-//        AndroidSharedPreferencesUserDefaults._bridged
-//    }
-//    #endif
-
-    /// On Darwin platforms, this just returns `UserDefaults.standard`, and on Android it will return a bridge to the `SharedPreferences` for the app.
-    public static var bridged: UserDefaults {
-        #if os(Android) || ROBOLECTRIC
-        AndroidSharedPreferencesUserDefaults._bridged
-        #else
-        UserDefaults.standard
-        #endif
-    }
-}
-
-internal class AndroidSharedPreferencesUserDefaults : UserDefaults {
-    static let _bridged = AndroidSharedPreferencesUserDefaults(AndroidUserDefaults.standard)
-
-    private let bridgedDefaults: AndroidUserDefaults
-
-    private init(_ bridgedDefaults: AndroidUserDefaults) {
-        self.bridgedDefaults = bridgedDefaults
-        super.init(suiteName: nil)!
-    }
-
-    override func set(_ value: Double, forKey defaultName: String) {
-        bridgedDefaults.setDouble(value, forKey: defaultName)
-    }
-
-    override func double(forKey defaultName: String) -> Double {
-        bridgedDefaults.double(forKey: defaultName)
-    }
-
-    // not implemented in skip.foundation.UserDefaults for some reason
-//    override func set(_ value: Float, forKey defaultName: String) {
-//        bridgedDefaults.setFloat(value, forKey: defaultName)
-//    }
-//
-//    override func float(forKey defaultName: String) -> Float {
-//        bridgedDefaults.float(forKey: defaultName)
-//    }
-
-    override func set(_ value: Bool, forKey defaultName: String) {
-        bridgedDefaults.setBool(value, forKey: defaultName)
-    }
-
-    override func bool(forKey defaultName: String) -> Bool {
-        bridgedDefaults.bool(forKey: defaultName)
-    }
-
-    override func set(_ value: Int, forKey defaultName: String) {
-        bridgedDefaults.setInt(value, forKey: defaultName)
-    }
-
-    override func integer(forKey defaultName: String) -> Int {
-        bridgedDefaults.integer(forKey: defaultName)
-    }
-
-    override func set(_ value: Any?, forKey defaultName: String) {
-        if let value = value as? String? {
-            bridgedDefaults.setString(value, forKey: defaultName)
-        } else if let value = value as? Data? {
-            bridgedDefaults.setData(value, forKey: defaultName)
-        } else if let value = value as? Double {
-            bridgedDefaults.setDouble(value, forKey: defaultName)
-//        } else if let value = value as? Float {
-//            bridgedDefaults.setFloat(value, forKey: defaultName)
-        } else if let value = value as? Bool {
-            bridgedDefaults.setBool(value, forKey: defaultName)
-        } else if let value = value as? Int {
-            bridgedDefaults.setInt(value, forKey: defaultName)
-        }
-    }
-
-    override func string(forKey defaultName: String) -> String? {
-        bridgedDefaults.string(forKey: defaultName)
-    }
-
-    override func data(forKey defaultName: String) -> Data? {
-        bridgedDefaults.data(forKey: defaultName)
-    }
-}

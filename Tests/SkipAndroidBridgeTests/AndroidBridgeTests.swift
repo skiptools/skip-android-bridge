@@ -7,7 +7,7 @@
 import XCTest
 import OSLog
 import Foundation
-import SkipBridgeKt
+import SkipBridge
 @testable import SkipAndroidBridge
 
 let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "Tests")

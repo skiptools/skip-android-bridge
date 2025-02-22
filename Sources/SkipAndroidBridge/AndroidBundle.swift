@@ -3,21 +3,21 @@
 // This is free software: you can redistribute and/or modify it
 // under the terms of the GNU Lesser General Public License 3.0
 // as published by the Free Software Foundation https://fsf.org
+#if os(Android)
 import Foundation
 import SkipBridge
 
 /// Override of native `Bundle` for Android that delegates to our `skip.foundation.Bundle` Kotlin object.
 open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
-    private static let bundleStatics = try! AnyDynamicObject(forStaticsOfClassName: "skip.foundation.Bundle", options: [])
-    private let bundle: AnyDynamicObject
+    fileprivate let bundleAccess: BundleAccess
 
-    open override class var main: Self {
-        let bundle: AnyDynamicObject = bundleStatics.main!
-        return Self.init(bundle)
+    open override class var main: AndroidBundle {
+        return _main
     }
+    private static let _main = AndroidBundle(BundleAccess.main)
 
-    public required init(_ bundle: AnyDynamicObject) {
-        self.bundle = bundle
+    public required init(_ bundleAccess: BundleAccess) {
+        self.bundleAccess = bundleAccess
         super.init(path: Foundation.Bundle.main.bundlePath)!
     }
 
@@ -28,7 +28,7 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     ///   - Parameter moduleName: The name of the module constructing this instance.
     ///   - Parameter moduleBundle: A block to invoke to receive the module's `skip.foundation.Bundle`.
     public init?(path: String, moduleName: String? = nil, moduleBundle: (() -> AnyDynamicObject)? = nil) {
-        var bundle: AnyDynamicObject? = nil
+        var bundleAccess: BundleAccess? = nil
         // To form the expected module bundle path, Linux uses:
         // <Bundle.main.bundlePath>/<package-name>_<module-name>.resources
         if let moduleName, let moduleBundle, let lastDirSeparator = path.lastIndex(of: "/") {
@@ -36,24 +36,21 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
             let fileName = String(path[path.index(after: lastDirSeparator)...])
             let mainBundlePath = Self.main.bundlePath
             if basePath == mainBundlePath && fileName.hasSuffix("_" + moduleName + ".resources") {
-                bundle = moduleBundle()
+                bundleAccess = BundleAccess(moduleBundle())
             }
         }
-        if bundle == nil {
-            bundle = try? AnyDynamicObject(className: "skip.foundation.Bundle", options: [], path)
+        if bundleAccess == nil {
+            bundleAccess = BundleAccess(path: path)
         }
-        guard let bundle else {
+        guard let bundleAccess else {
             return nil
         }
-        self.bundle = bundle
+        self.bundleAccess = bundleAccess
         super.init(path: Foundation.Bundle.main.bundlePath)!
     }
 
     public init?(url: URL) {
-        guard let bundle = try? AnyDynamicObject(className: "skip.foundation.Bundle", options: [], url) else {
-            return nil
-        }
-        self.bundle = bundle
+        self.bundleAccess = BundleAccess(url: url)
         super.init(path: Foundation.Bundle.main.bundlePath)!
     }
 
@@ -69,6 +66,14 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
         fatalError()
     }
     #endif
+
+    public static func == (lhs: AndroidBundle, rhs: AndroidBundle) -> Bool {
+        lhs.bundleAccess == rhs.bundleAccess
+    }
+
+    open override var description: String {
+        return "AndroidBundle: \(bundleAccess.description)"
+    }
 
     @available(*, unavailable)
     open override class var allBundles: [Bundle] {
@@ -106,11 +111,11 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     }
 
     open override var bundleURL: URL {
-        return bundle.bundleURL!
+        return bundleAccess.bundleURL
     }
 
     open override var resourceURL: URL? {
-        return bundle.resourceURL
+        return bundleAccess.resourceURL
     }
 
     @available(*, unavailable)
@@ -149,11 +154,11 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     }
 
     open override var bundlePath: String {
-        return bundle.bundlePath!
+        return bundleAccess.bundlePath
     }
 
     open override var resourcePath: String? {
-        return bundle.resourcePath
+        return bundleAccess.resourcePath
     }
 
     @available(*, unavailable)
@@ -187,7 +192,7 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     }
 
     open override class func url(forResource name: String?, withExtension ext: String?, subdirectory subpath: String?, in bundleURL: URL) -> URL? {
-        return try! bundleStatics.url(forResource: name, withExtension: ext, subdirectory: subpath, in: bundleURL)
+        return BundleAccess.url(forResource: name, withExtension: ext, subdirectory: subpath, in: bundleURL)
     }
 
     // Uses NSURL on Android
@@ -196,15 +201,15 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
 //    }
 
     open override func url(forResource name: String?, withExtension ext: String?) -> URL? {
-        return url(forResource: name, withExtension: ext, subdirectory: nil, localization: nil)
+        return bundleAccess.url(forResource: name, withExtension: ext)
     }
 
     open override func url(forResource name: String?, withExtension ext: String?, subdirectory subpath: String?) -> URL? {
-        return url(forResource: name, withExtension: ext, subdirectory: subpath, localization: nil)
+        return bundleAccess.url(forResource: name, withExtension: ext, subdirectory: subpath)
     }
 
     open override func url(forResource name: String?, withExtension ext: String?, subdirectory subpath: String?, localization localizationName: String?) -> URL? {
-        return try! bundle.url(forResource: name, withExtension: ext, subdirectory: subpath, localization: localizationName)
+        return bundleAccess.url(forResource: name, withExtension: ext, subdirectory: subpath, localization: localizationName)
     }
 
     // Uses NSURL on Android
@@ -217,51 +222,51 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
 //    }
 
     open override class func path(forResource name: String?, ofType ext: String?, inDirectory bundlePath: String) -> String? {
-        return try! bundleStatics.path(forResource: name, ofType: ext, inDirectory: bundlePath)
+        return BundleAccess.path(forResource: name, ofType: ext, inDirectory: bundlePath)
     }
 
     open override class func paths(forResourcesOfType ext: String?, inDirectory bundlePath: String) -> [String] {
-        return try! bundleStatics.paths(forResourcesOfType: ext, inDirectory: bundlePath)!
+        return BundleAccess.paths(forResourcesOfType: ext, inDirectory: bundlePath)
     }
 
     open override func path(forResource name: String?, ofType ext: String?) -> String? {
-        return path(forResource: name, ofType: ext, inDirectory: nil, forLocalization: nil)
+        return bundleAccess.path(forResource: name, ofType: ext)
     }
 
     open override func path(forResource name: String?, ofType ext: String?, inDirectory subpath: String?) -> String? {
-        return path(forResource: name, ofType: ext, inDirectory: subpath, forLocalization: nil)
+        return bundleAccess.path(forResource: name, ofType: ext, inDirectory: subpath)
     }
 
     open override func path(forResource name: String?, ofType ext: String?, inDirectory subpath: String?, forLocalization localizationName: String?) -> String? {
-        return try! bundle.path(forResource: name, ofType: ext, inDirectory: subpath, forLocalization: localizationName)
+        return bundleAccess.path(forResource: name, ofType: ext, inDirectory: subpath, forLocalization: localizationName)
     }
 
     open override func paths(forResourcesOfType ext: String?, inDirectory subpath: String?) -> [String] {
-        return paths(forResourcesOfType: ext, inDirectory: subpath, forLocalization: nil)
+        return bundleAccess.paths(forResourcesOfType: ext, inDirectory: subpath)
     }
 
     open override func paths(forResourcesOfType ext: String?, inDirectory subpath: String?, forLocalization localizationName: String?) -> [String] {
-        return try! bundle.paths(forResourcesOfType: ext, inDirectory: subpath, forLocalization: localizationName)!
+        return bundleAccess.paths(forResourcesOfType: ext, inDirectory: subpath, forLocalization: localizationName)
     }
 
     open override func localizedString(forKey key: String, value: String?, table tableName: String?) -> String {
-        return try! bundle.localizedString(forKey: key, value: value, table: tableName)!
+        return bundleAccess.localizedString(forKey: key, value: value, table: tableName)
     }
 
     open override var bundleIdentifier: String? {
-        return bundle.bundleIdentifier
+        return bundleAccess.bundleIdentifier
     }
 
     open override var infoDictionary: [String : Any]? {
-        return bundle.infoDictionary
+        return bundleAccess.infoDictionary
     }
 
     open override var localizedInfoDictionary: [String : Any]? {
-        return bundle.localizedInfoDictionary
+        return bundleAccess.localizedInfoDictionary
     }
 
     open override func object(forInfoDictionaryKey key: String) -> Any? {
-        return try! bundle.object(forInfoDictionaryKey: key) as JConvertible?
+        return bundleAccess.object(forInfoDictionaryKey: key)
     }
 
     @available(*, unavailable)
@@ -280,11 +285,11 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     }
 
     open override var localizations: [String] {
-        return try! bundle.bridgedLocalizations()!
+        return bundleAccess.localizations
     }
 
     open override var developmentLocalization: String? {
-        return bundle.developmentLocalization
+        return bundleAccess.developmentLocalization
     }
 
     @available(*, unavailable)
@@ -305,11 +310,152 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
 
 extension AndroidBundle : JObjectProtocol, JConvertible {
     public static func fromJavaObject(_ obj: JavaObjectPointer?, options: JConvertibleOptions) -> Self {
-        let bundle = try! AnyDynamicObject(for: obj!, options: [])
-        return Self.init(bundle)
+        return try! Self.init(BundleAccess(AnyDynamicObject(for: obj!, options: options)))
     }
 
     public func toJavaObject(options: JConvertibleOptions) -> JavaObjectPointer? {
-        return bundle.toJavaObject(options: options)
+        return bundleAccess.bundle.toJavaObject(options: options)
     }
 }
+
+/// Allows packages to `let NSLocalizedString = AndroidLocalizedString()`, which will take
+/// precedence over `Foundation.LocalizedString`.
+public struct AndroidLocalizedString {
+    public init() {
+    }
+    
+    public func callAsFunction(_ key: String, tableName: String? = nil, bundle: AndroidBundle? = nil, value: String? = nil, comment: String) -> String {
+        return NSLocalizedStringAccess(key, tableName: tableName, bundle: bundle?.bundleAccess, value: value, comment: comment)
+    }
+}
+
+#if SKIP
+
+/// This bridged class gives us efficient access to `skip.foundation.Bundle` without bridging it to native.
+public final class BundleAccess {
+    public static var main: BundleAccess {
+        return BundleAccess(skip.foundation.Bundle.main)
+    }
+
+    public let bundle: skip.foundation.Bundle
+
+    // Fully-qualify the name here so that it bridges to AnyDynamicObject
+    public init(_ bundle: skip.foundation.Bundle) {
+        self.bundle = bundle
+    }
+
+    public convenience init(path: String) {
+        self.init(skip.foundation.Bundle(path: path)!)
+    }
+
+    public convenience init(url: URL) {
+        self.init(skip.foundation.Bundle(url: url)!)
+    }
+
+    public init() {
+        self.init(skip.foundation.Bundle())
+    }
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.bundle == rhs.bundle
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(bundle)
+    }
+
+    public var description: String {
+        return bundle.description
+    }
+
+    public var bundleURL: URL {
+        return bundle.bundleURL
+    }
+
+    public var resourceURL: URL? {
+        return bundle.resourceURL
+    }
+
+    public var bundlePath: String {
+        return bundle.bundlePath
+    }
+
+    public var resourcePath: String? {
+        return bundle.resourcePath
+    }
+
+    public static func url(forResource name: String?, withExtension ext: String? = nil, subdirectory subpath: String? = nil, in bundleURL: URL) -> URL? {
+        return skip.foundation.Bundle.url(forResource: name, withExtension: ext, subdirectory: subpath, in: bundleURL)
+    }
+
+    public static func urls(forResourcesWithExtension ext: String?, subdirectory subpath: String?, in bundleURL: URL) -> [URL]? {
+        return skip.foundation.Bundle.urls(forResourcesWithExtension: ext, subdirectory: subpath, in: bundleURL)
+    }
+
+    public func url(forResource name: String? = nil, withExtension ext: String? = nil, subdirectory subpath: String? = nil, localization localizationName: String? = nil) -> URL? {
+        return bundle.url(forResource: name, withExtension: ext, subdirectory: subpath, localization: localizationName)
+    }
+
+    public func urls(forResourcesWithExtension ext: String?, subdirectory subpath: String? = nil, localization localizationName: String? = nil) -> [URL]? {
+        return bundle.urls(forResourcesWithExtension: ext, subdirectory: subpath, localization: localizationName)
+    }
+
+    public static func path(forResource name: String?, ofType ext: String?, inDirectory bundlePath: String) -> String? {
+        return skip.foundation.Bundle.path(forResource: name, ofType: ext, inDirectory: bundlePath)
+    }
+
+    public static func paths(forResourcesOfType ext: String?, inDirectory bundlePath: String) -> [String] {
+        return skip.foundation.Bundle.paths(forResourcesOfType: ext, inDirectory: bundlePath)
+    }
+
+    public func path(forResource name: String? = nil, ofType ext: String? = nil, inDirectory subpath: String? = nil, forLocalization localizationName: String? = nil) -> String? {
+        return bundle.path(forResource: name, ofType: ext, inDirectory: subpath, forLocalization: localizationName)
+    }
+
+    public func paths(forResourcesOfType ext: String?, inDirectory subpath: String? = nil, forLocalization localizationName: String? = nil) -> [String] {
+        return bundle.paths(forResourcesOfType: ext, inDirectory: subpath, forLocalization: localizationName)
+    }
+
+    public var resourcesIndex: [String] {
+        return bundle.resourcesIndex
+    }
+
+    public var developmentLocalization: String {
+        return bundle.developmentLocalization
+    }
+
+    public var localizations: [String] {
+        return bundle.localizations
+    }
+
+    public func localizedString(forKey key: String, value: String?, table tableName: String?, locale: Locale? = nil) -> String {
+        return bundle.localizedString(forKey: key, value: value, table: tableName, locale: locale)
+    }
+
+    public func localizedBundle(locale: Locale) -> BundleAccess {
+        return BundleAccess(bundle.localizedBundle(locale: locale))
+    }
+
+    public var bundleIdentifier: String? {
+        return bundle.bundleIdentifier
+    }
+
+    public var infoDictionary: [String : Any]? {
+        return bundle.infoDictionary
+    }
+
+    public var localizedInfoDictionary: [String : Any]? {
+        return bundle.localizedInfoDictionary
+    }
+
+    public func object(forInfoDictionaryKey key: String) -> Any? {
+        return bundle.object(forInfoDictionaryKey: key)
+    }
+}
+
+public func NSLocalizedStringAccess(_ key: String, tableName: String? = nil, bundle: BundleAccess? = nil, value: String? = nil, comment: String) -> String {
+    return NSLocalizedString(key, tableName: tableName, bundle: bundle?.bundle, value: value, comment: comment)
+}
+
+#endif
+#endif

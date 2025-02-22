@@ -4,7 +4,13 @@
 // under the terms of the GNU Lesser General Public License 3.0
 // as published by the Free Software Foundation https://fsf.org
 
-#if !SKIP
+#if SKIP
+import Foundation
+import OSLog
+import SkipAndroidBridge
+
+fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridge")
+#else
 import Foundation
 @_exported import SkipBridge
 #if canImport(FoundationNetworking)
@@ -19,7 +25,7 @@ import Foundation
 @_exported import AndroidLooper
 #endif
 
-fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridgeToKotlin")
+fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridgeBootstrap")
 #endif
 
 #if os(Android) || ROBOLECTRIC
@@ -28,9 +34,37 @@ public let isAndroid = true
 public let isAndroid = false
 #endif
 
+#if SKIP
+
+
+/// The entry point from a Kotlin Main.kt into the bridged `SkipAndroidBridge`.
+///
+/// This class handles the initial Kotlin-side setup of the Swift bridging, which currently
+/// just involves loading the specific library and calling the Swift `AndroidBridgeBootstrap.initAndroidBridge()`,
+/// which will, in turn, perform all the Foundation-level setup.
+public class AndroidBridge {
+    /// This is called at app initialization time by reflection from the `Main.kt`
+    ///
+    /// It will look like: `skip.android.bridge.AndroidBridge.initBridge("AppDroidModel")`
+    public static func initBridge(_ libraryNames: String) throws {
+        for libraryName in libraryNames.split(separator: ",") {
+            do {
+                logger.debug("loading library: \(libraryName)")
+                try System.loadLibrary(libraryName)
+            } catch {
+                android.util.Log.e("SkipBridge", "error loading bridge library: \(libraryName)", error as? ErrorException)
+            }
+        }
+
+        let context = ProcessInfo.processInfo.androidContext
+        try AndroidBridgeBootstrap.initAndroidBridge(filesDir: context.getFilesDir().getAbsolutePath(), cacheDir: context.getCacheDir().getAbsolutePath())
+    }
+}
+#endif
+
 private var androidBridgeInit = false
 
-/// Called from Kotlin's `AndroidBridgeKt.AndroidBridge.initBridge` to perform setup that is needed to
+/// Called from Kotlin's `AndroidBridge.initBridge` to perform setup that is needed to
 /// get `Foundation` idioms working with Android conventions.
 // SKIP @bridge
 public class AndroidBridgeBootstrap {

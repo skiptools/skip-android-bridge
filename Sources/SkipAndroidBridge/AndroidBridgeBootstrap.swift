@@ -3,7 +3,6 @@
 #if SKIP
 import Foundation
 import OSLog
-import SkipAndroidBridge
 
 fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridge")
 #else

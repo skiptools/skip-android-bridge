@@ -9,7 +9,7 @@ import SkipBridge
 @testable import SkipAndroidBridge
 
 #if canImport(OSLog)
-let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "Tests")
+let logger: Logger = Logger(subsystem: "skip.android.bridge", category: "AndroidBridgeTests")
 #endif
 
 @available(macOS 13, *)

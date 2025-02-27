@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
 #if os(Android)
 import Foundation
-#if canImport(FoundationNetworking)
 import FoundationNetworking
-#endif
-#if canImport(AndroidAssetManager)
 import AndroidAssetManager
-#endif
+import AndroidLogging
 import SkipBridge
+
+fileprivate let logger: Logger = Logger(subsystem: "skip.android.bridge", category: "AssetURLProtocol")
 
 /// A custom URLProtocol that serves requests from the native Android `AAssetManager`, which is implemented in `swift-android-native / AndroidAssetManager.swift`
 public class AssetURLProtocol: URLProtocol {

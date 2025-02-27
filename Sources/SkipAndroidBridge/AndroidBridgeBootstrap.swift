@@ -4,7 +4,7 @@
 import Foundation
 import OSLog
 
-fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridge")
+fileprivate let logger: Logger = Logger(subsystem: "skip.android.bridge", category: "AndroidBridge")
 #else
 import Foundation
 @_exported import SkipBridge
@@ -19,8 +19,7 @@ import Foundation
 #if canImport(AndroidLooper)
 @_exported import AndroidLooper
 #endif
-
-fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridgeBootstrap")
+fileprivate let logger: Logger = Logger(subsystem: "skip.android.bridge", category: "AndroidBridge")
 #endif
 
 #if os(Android) || ROBOLECTRIC
@@ -74,8 +73,7 @@ public class AndroidBridgeBootstrap {
         defer { Self.androidBridgeInit = true }
 
         let start = Date.now
-        logger.log("initAndroidBridge started")
-
+        logger.debug("initAndroidBridge: start")
         #if os(Android) || ROBOLECTRIC
         try bootstrapFileManagerProperties(filesDir: filesDir, cacheDir: cacheDir)
         #endif
@@ -83,14 +81,14 @@ public class AndroidBridgeBootstrap {
         try AssetURLProtocol.register()
         try bootstrapTimezone()
         try bootstrapSSLCertificates()
-        AndroidLooper.setupMainLooper()
+        _ = AndroidLooper.setupMainLooper()
         #endif
-        logger.log("AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
+        logger.log("initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
     }
 }
 
 private func bootstrapTimezone() throws {
-    // Until https://github.com/swiftlang/swift-foundation/pull/1053 gets merged
+    // Until https://github.com/swiftlang/swift-foundation/pull/1053 becomes available
     tzset()
     var t = time(nil)
     var lt : tm = tm()
@@ -99,7 +97,6 @@ private func bootstrapTimezone() throws {
         //logger.debug("detected timezone: \(name)")
         setenv("TZ", name, 0)
     }
-
 }
 
 private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) throws {

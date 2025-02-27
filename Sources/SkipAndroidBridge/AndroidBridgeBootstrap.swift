@@ -57,12 +57,12 @@ public class AndroidBridge {
 }
 #endif
 
-private var androidBridgeInit = false
-
 /// Called from Kotlin's `AndroidBridge.initBridge` to perform setup that is needed to
 /// get `Foundation` idioms working with Android conventions.
 // SKIP @bridge
 public class AndroidBridgeBootstrap {
+    private static var androidBridgeInit = false
+
     /// Perform all the setup that is needed to get `Foundation` idioms working with Android conventions.
     ///
     /// This includes:
@@ -70,15 +70,17 @@ public class AndroidBridgeBootstrap {
     /// - Using the Android context file locations for `FileManager.url`
     // SKIP @bridge
     public static func initAndroidBridge(filesDir: String, cacheDir: String) throws {
-        if androidBridgeInit == true { return }
-        defer { androidBridgeInit = true }
+        if Self.androidBridgeInit == true { return }
+        defer { Self.androidBridgeInit = true }
 
         let start = Date.now
         logger.log("initAndroidBridge started")
+
         #if os(Android) || ROBOLECTRIC
         try bootstrapFileManagerProperties(filesDir: filesDir, cacheDir: cacheDir)
         #endif
         #if os(Android)
+        try AssetURLProtocol.register()
         try bootstrapTimezone()
         try bootstrapSSLCertificates()
         AndroidLooper.setupMainLooper()
@@ -179,4 +181,5 @@ extension URL {
         try! FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
     }
 }
+
 #endif

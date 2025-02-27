@@ -1,12 +1,16 @@
 // Copyright 2024–2025 Skip
 // SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
 import XCTest
+#if canImport(OSLog)
 import OSLog
+#endif
 import Foundation
 import SkipBridge
 @testable import SkipAndroidBridge
 
+#if canImport(OSLog)
 let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "Tests")
+#endif
 
 @available(macOS 13, *)
 final class AndroidBridgeTests: XCTestCase {

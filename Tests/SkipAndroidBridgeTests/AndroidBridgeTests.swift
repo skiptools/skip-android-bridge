@@ -42,14 +42,6 @@ final class AndroidBridgeTests: XCTestCase {
         try "ABC".write(to: filesDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
         try "XYZ".write(to: cacheDir.appendingPathComponent("test.txt"), atomically: true, encoding: .utf8)
 
-        /*
-         02-28 01:26:38.353  2089  2107 E TestRunner: skip.lib.ErrorException: Error Domain=NSCocoaErrorDomain Code=4 "The file doesn’t exist."
-         02-28 01:26:38.353  2089  2107 E TestRunner:     at skip.android.bridge.AndroidBridgeBootstrap$Companion.Swift_Companion_initAndroidBridge_0(Native Method)
-         02-28 01:26:38.353  2089  2107 E TestRunner:     at skip.android.bridge.AndroidBridgeBootstrap$Companion.initAndroidBridge(AndroidBridgeBootstrap.kt:79)
-         02-28 01:26:38.353  2089  2107 E TestRunner:     at skip.android.bridge.AndroidBridgeTests.testAndroidBridge$SkipAndroidBridge_debugAndroidTest(AndroidBridgeTests.kt:40)
-         02-28 01:26:38.353  2089  2107 E TestRunner:     at java.lang.reflect.Method.invoke(Native Method)
-         02-28 01:26:38.353  2089  2107 E TestRunner:     at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
-         */
         try AndroidBridgeBootstrap.initAndroidBridge(filesDir: filesDir.path, cacheDir: cacheDir.path)
         #else
         throw XCTSkip("testAndroidBridge only works from SKIP")

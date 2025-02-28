@@ -50,7 +50,7 @@ final class AndroidBridgeTests: XCTestCase {
          02-28 01:26:38.353  2089  2107 E TestRunner:     at java.lang.reflect.Method.invoke(Native Method)
          02-28 01:26:38.353  2089  2107 E TestRunner:     at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
          */
-        //try AndroidBridgeBootstrap.initAndroidBridge(filesDir: filesDir.path, cacheDir: cacheDir.path)
+        try AndroidBridgeBootstrap.initAndroidBridge(filesDir: filesDir.path, cacheDir: cacheDir.path)
         #else
         throw XCTSkip("testAndroidBridge only works from SKIP")
         #endif

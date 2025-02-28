@@ -129,13 +129,18 @@ private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) 
 /// See https://github.com/apple/swift-nio-ssl/blob/d1088ebe0789d9eea231b40741831f37ab654b61/Sources/NIOSSL/AndroidCABundle.swift#L30
 private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [String] = ["/system/etc/security/cacerts", "/apex/com.android.conscrypt/cacerts"]) throws {
     //let cacheFolder = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true) // file:////.cache/ (unwritable)
-    let cacheFolder = FileManager.default.temporaryDirectory
+    let cacheFolder = URL.cachesDirectory
     logger.error("### bootstrapSSLCertificates: \(cacheFolder)")
-    let generatedCacertsURL = cacheFolder.appendingPathComponent("cacerts-\(UUID().uuidString).pem")
+    let generatedCacertsURL = cacheFolder.appendingPathComponent("cacerts-aggregate.pem")
     logger.error("### bootstrapSSLCertificates: generatedCacertsURL=\(generatedCacertsURL)")
 
     let contents = try FileManager.default.contentsOfDirectory(at: cacheFolder, includingPropertiesForKeys: nil)
     logger.error("### bootstrapSSLCertificates: cacheFolder=\(cacheFolder) contents=\(contents)")
+
+    // clear any previous generated certificates file that may have been created by this app
+    if FileManager.default.fileExists(atPath: generatedCacertsURL.path) {
+        try FileManager.default.removeItem(atPath: generatedCacertsURL.path)
+    }
 
     let created = FileManager.default.createFile(atPath: generatedCacertsURL.path, contents: nil)
     logger.error("### bootstrapSSLCertificates: created file: \(created): \(generatedCacertsURL.path)")

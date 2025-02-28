@@ -73,22 +73,28 @@ public class AndroidBridgeBootstrap {
         defer { Self.androidBridgeInit = true }
 
         let start = Date.now
-        logger.debug("initAndroidBridge: start")
+        logger.error("### initAndroidBridge: start")
         #if os(Android) || ROBOLECTRIC
+        logger.error("### initAndroidBridge: bootstrapFileManagerProperties")
         try bootstrapFileManagerProperties(filesDir: filesDir, cacheDir: cacheDir)
         #endif
         #if os(Android)
+        logger.error("### initAndroidBridge: AssetURLProtocol.register")
         try AssetURLProtocol.register()
+        logger.error("### initAndroidBridge: bootstrapTimezone")
         try bootstrapTimezone()
+        logger.error("### initAndroidBridge: bootstrapSSLCertificates")
         try bootstrapSSLCertificates()
-        _ = AndroidLooper.setupMainLooper()
+        logger.error("### initAndroidBridge: AndroidLooper.setupMainLooper")
+        AndroidLooper.setupMainLooper()
+        logger.error("### initAndroidBridge: done")
         #endif
-        logger.log("initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
+        logger.error("### AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
     }
 }
 
 private func bootstrapTimezone() throws {
-    // Until https://github.com/swiftlang/swift-foundation/pull/1053 becomes available
+    // Until https://github.com/swiftlang/swift-foundation/pull/1053 gets merged
     tzset()
     var t = time(nil)
     var lt : tm = tm()
@@ -97,6 +103,7 @@ private func bootstrapTimezone() throws {
         //logger.debug("detected timezone: \(name)")
         setenv("TZ", name, 0)
     }
+
 }
 
 private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) throws {

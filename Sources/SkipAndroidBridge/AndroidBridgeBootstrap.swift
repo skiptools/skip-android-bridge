@@ -130,7 +130,9 @@ private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) 
 private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [String] = ["/system/etc/security/cacerts", "/apex/com.android.conscrypt/cacerts"]) throws {
     //let cacheFolder = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true) // file:////.cache/ (unwritable)
     let cacheFolder = FileManager.default.temporaryDirectory
+    logger.error("### bootstrapSSLCertificates: \(cacheFolder)")
     let generatedCacertsURL = cacheFolder.appendingPathComponent("cacerts-\(UUID().uuidString).pem")
+    logger.error("### bootstrapSSLCertificates: generatedCacertsURL=\(generatedCacertsURL)")
 
     _ = FileManager.default.createFile(atPath: generatedCacertsURL.path, contents: nil)
     let fs = try FileHandle(forWritingTo: generatedCacertsURL)
@@ -154,6 +156,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
         if (try? certsFolderURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) != true { continue }
         let certURLs = try FileManager.default.contentsOfDirectory(at: certsFolderURL, includingPropertiesForKeys: [.isRegularFileKey, .isReadableKey])
         for certURL in certURLs {
+            logger.error("### bootstrapSSLCertificates: certURL=\(certURL)")
             // certificate files have names like "53a1b57a.0"
             if certURL.pathExtension != "0" { continue }
             do {

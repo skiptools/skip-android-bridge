@@ -4,7 +4,7 @@
 import Foundation
 import OSLog
 
-fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridge")
+fileprivate let logger: Logger = Logger(subsystem: "skip.android.bridge", category: "AndroidBridge")
 #else
 import Foundation
 @_exported import SkipBridge
@@ -19,8 +19,7 @@ import Foundation
 #if canImport(AndroidLooper)
 @_exported import AndroidLooper
 #endif
-
-fileprivate let logger: Logger = Logger(subsystem: "SkipAndroidBridge", category: "AndroidBridgeBootstrap")
+fileprivate let logger: Logger = Logger(subsystem: "skip.android.bridge", category: "AndroidBridge")
 #endif
 
 #if os(Android) || ROBOLECTRIC
@@ -57,12 +56,12 @@ public class AndroidBridge {
 }
 #endif
 
-private var androidBridgeInit = false
-
 /// Called from Kotlin's `AndroidBridge.initBridge` to perform setup that is needed to
 /// get `Foundation` idioms working with Android conventions.
 // SKIP @bridge
 public class AndroidBridgeBootstrap {
+    private static var androidBridgeInit = false
+
     /// Perform all the setup that is needed to get `Foundation` idioms working with Android conventions.
     ///
     /// This includes:
@@ -70,20 +69,27 @@ public class AndroidBridgeBootstrap {
     /// - Using the Android context file locations for `FileManager.url`
     // SKIP @bridge
     public static func initAndroidBridge(filesDir: String, cacheDir: String) throws {
-        if androidBridgeInit == true { return }
-        defer { androidBridgeInit = true }
+        if Self.androidBridgeInit == true { return }
+        defer { Self.androidBridgeInit = true }
 
         let start = Date.now
-        logger.log("initAndroidBridge started")
+        logger.debug("initAndroidBridge: start")
         #if os(Android) || ROBOLECTRIC
+        logger.debug("initAndroidBridge: bootstrapFileManagerProperties")
         try bootstrapFileManagerProperties(filesDir: filesDir, cacheDir: cacheDir)
         #endif
         #if os(Android)
+        logger.debug("initAndroidBridge: AssetURLProtocol.register")
+        try AssetURLProtocol.register()
+        logger.debug("initAndroidBridge: bootstrapTimezone")
         try bootstrapTimezone()
+        logger.debug("initAndroidBridge: bootstrapSSLCertificates")
         try bootstrapSSLCertificates()
+        logger.debug("initAndroidBridge: AndroidLooper.setupMainLooper")
         AndroidLooper.setupMainLooper()
+        logger.debug("initAndroidBridge: done")
         #endif
-        logger.log("AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
+        logger.debug("AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
     }
 }
 
@@ -123,10 +129,22 @@ private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) 
 /// See https://github.com/apple/swift-nio-ssl/blob/d1088ebe0789d9eea231b40741831f37ab654b61/Sources/NIOSSL/AndroidCABundle.swift#L30
 private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [String] = ["/system/etc/security/cacerts", "/apex/com.android.conscrypt/cacerts"]) throws {
     //let cacheFolder = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true) // file:////.cache/ (unwritable)
-    let cacheFolder = FileManager.default.temporaryDirectory
-    let generatedCacertsURL = cacheFolder.appendingPathComponent("cacerts-\(UUID().uuidString).pem")
+    let cacheFolder = URL.cachesDirectory
+    logger.debug("bootstrapSSLCertificates: \(cacheFolder)")
+    let generatedCacertsURL = cacheFolder.appendingPathComponent("cacerts-aggregate.pem")
+    logger.debug("bootstrapSSLCertificates: generatedCacertsURL=\(generatedCacertsURL)")
 
-    _ = FileManager.default.createFile(atPath: generatedCacertsURL.path, contents: nil)
+    let contents = try FileManager.default.contentsOfDirectory(at: cacheFolder, includingPropertiesForKeys: nil)
+    logger.debug("bootstrapSSLCertificates: cacheFolder=\(cacheFolder) contents=\(contents)")
+
+    // clear any previous generated certificates file that may have been created by this app
+    if FileManager.default.fileExists(atPath: generatedCacertsURL.path) {
+        try FileManager.default.removeItem(atPath: generatedCacertsURL.path)
+    }
+
+    let created = FileManager.default.createFile(atPath: generatedCacertsURL.path, contents: nil)
+    logger.debug("bootstrapSSLCertificates: created file: \(created): \(generatedCacertsURL.path)")
+
     let fs = try FileHandle(forWritingTo: generatedCacertsURL)
     defer { try? fs.close() }
 
@@ -148,6 +166,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
         if (try? certsFolderURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) != true { continue }
         let certURLs = try FileManager.default.contentsOfDirectory(at: certsFolderURL, includingPropertiesForKeys: [.isRegularFileKey, .isReadableKey])
         for certURL in certURLs {
+            logger.debug("bootstrapSSLCertificates: certURL=\(certURL)")
             // certificate files have names like "53a1b57a.0"
             if certURL.pathExtension != "0" { continue }
             do {
@@ -165,6 +184,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
     //setenv("URLSessionCertificateAuthorityInfoFile", "INSECURE_SSL_NO_VERIFY", 1) // disables all certificate verification
     //setenv("URLSessionCertificateAuthorityInfoFile", "/system/etc/security/cacerts/", 1) // doesn't work for directories
     setenv("URLSessionCertificateAuthorityInfoFile", generatedCacertsURL.path, 1)
+    logger.debug("bootstrapSSLCertificates: set URLSessionCertificateAuthorityInfoFile=\(generatedCacertsURL.path)")
 }
 
 // URL.applicationSupportDirectory exists in Darwin's Foundation but not in Android's Foundation
@@ -179,4 +199,5 @@ extension URL {
         try! FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
     }
 }
+
 #endif

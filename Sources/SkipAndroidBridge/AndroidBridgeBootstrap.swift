@@ -73,23 +73,23 @@ public class AndroidBridgeBootstrap {
         defer { Self.androidBridgeInit = true }
 
         let start = Date.now
-        logger.error("### initAndroidBridge: start")
+        logger.debug("initAndroidBridge: start")
         #if os(Android) || ROBOLECTRIC
-        logger.error("### initAndroidBridge: bootstrapFileManagerProperties")
+        logger.debug("initAndroidBridge: bootstrapFileManagerProperties")
         try bootstrapFileManagerProperties(filesDir: filesDir, cacheDir: cacheDir)
         #endif
         #if os(Android)
-        logger.error("### initAndroidBridge: AssetURLProtocol.register")
+        logger.debug("initAndroidBridge: AssetURLProtocol.register")
         try AssetURLProtocol.register()
-        logger.error("### initAndroidBridge: bootstrapTimezone")
+        logger.debug("initAndroidBridge: bootstrapTimezone")
         try bootstrapTimezone()
-        logger.error("### initAndroidBridge: bootstrapSSLCertificates")
+        logger.debug("initAndroidBridge: bootstrapSSLCertificates")
         try bootstrapSSLCertificates()
-        logger.error("### initAndroidBridge: AndroidLooper.setupMainLooper")
+        logger.debug("initAndroidBridge: AndroidLooper.setupMainLooper")
         AndroidLooper.setupMainLooper()
-        logger.error("### initAndroidBridge: done")
+        logger.debug("initAndroidBridge: done")
         #endif
-        logger.error("### AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
+        logger.debug("AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
     }
 }
 
@@ -130,12 +130,12 @@ private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) 
 private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [String] = ["/system/etc/security/cacerts", "/apex/com.android.conscrypt/cacerts"]) throws {
     //let cacheFolder = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true) // file:////.cache/ (unwritable)
     let cacheFolder = URL.cachesDirectory
-    logger.error("### bootstrapSSLCertificates: \(cacheFolder)")
+    logger.debug("bootstrapSSLCertificates: \(cacheFolder)")
     let generatedCacertsURL = cacheFolder.appendingPathComponent("cacerts-aggregate.pem")
-    logger.error("### bootstrapSSLCertificates: generatedCacertsURL=\(generatedCacertsURL)")
+    logger.debug("bootstrapSSLCertificates: generatedCacertsURL=\(generatedCacertsURL)")
 
     let contents = try FileManager.default.contentsOfDirectory(at: cacheFolder, includingPropertiesForKeys: nil)
-    logger.error("### bootstrapSSLCertificates: cacheFolder=\(cacheFolder) contents=\(contents)")
+    logger.debug("bootstrapSSLCertificates: cacheFolder=\(cacheFolder) contents=\(contents)")
 
     // clear any previous generated certificates file that may have been created by this app
     if FileManager.default.fileExists(atPath: generatedCacertsURL.path) {
@@ -143,7 +143,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
     }
 
     let created = FileManager.default.createFile(atPath: generatedCacertsURL.path, contents: nil)
-    logger.error("### bootstrapSSLCertificates: created file: \(created): \(generatedCacertsURL.path)")
+    logger.debug("bootstrapSSLCertificates: created file: \(created): \(generatedCacertsURL.path)")
 
     let fs = try FileHandle(forWritingTo: generatedCacertsURL)
     defer { try? fs.close() }
@@ -166,7 +166,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
         if (try? certsFolderURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) != true { continue }
         let certURLs = try FileManager.default.contentsOfDirectory(at: certsFolderURL, includingPropertiesForKeys: [.isRegularFileKey, .isReadableKey])
         for certURL in certURLs {
-            logger.error("### bootstrapSSLCertificates: certURL=\(certURL)")
+            logger.debug("bootstrapSSLCertificates: certURL=\(certURL)")
             // certificate files have names like "53a1b57a.0"
             if certURL.pathExtension != "0" { continue }
             do {
@@ -184,7 +184,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
     //setenv("URLSessionCertificateAuthorityInfoFile", "INSECURE_SSL_NO_VERIFY", 1) // disables all certificate verification
     //setenv("URLSessionCertificateAuthorityInfoFile", "/system/etc/security/cacerts/", 1) // doesn't work for directories
     setenv("URLSessionCertificateAuthorityInfoFile", generatedCacertsURL.path, 1)
-    logger.error("### bootstrapSSLCertificates: set URLSessionCertificateAuthorityInfoFile=\(generatedCacertsURL.path)")
+    logger.debug("bootstrapSSLCertificates: set URLSessionCertificateAuthorityInfoFile=\(generatedCacertsURL.path)")
 }
 
 // URL.applicationSupportDirectory exists in Darwin's Foundation but not in Android's Foundation

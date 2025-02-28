@@ -134,7 +134,12 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
     let generatedCacertsURL = cacheFolder.appendingPathComponent("cacerts-\(UUID().uuidString).pem")
     logger.error("### bootstrapSSLCertificates: generatedCacertsURL=\(generatedCacertsURL)")
 
-    _ = FileManager.default.createFile(atPath: generatedCacertsURL.path, contents: nil)
+    let contents = try FileManager.default.contentsOfDirectory(at: cacheFolder, includingPropertiesForKeys: nil)
+    logger.error("### bootstrapSSLCertificates: cacheFolder=\(cacheFolder) contents=\(contents)")
+
+    let created = FileManager.default.createFile(atPath: generatedCacertsURL.path, contents: nil)
+    logger.error("### bootstrapSSLCertificates: created file: \(created): \(generatedCacertsURL.path)")
+
     let fs = try FileHandle(forWritingTo: generatedCacertsURL)
     defer { try? fs.close() }
 
@@ -174,6 +179,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
     //setenv("URLSessionCertificateAuthorityInfoFile", "INSECURE_SSL_NO_VERIFY", 1) // disables all certificate verification
     //setenv("URLSessionCertificateAuthorityInfoFile", "/system/etc/security/cacerts/", 1) // doesn't work for directories
     setenv("URLSessionCertificateAuthorityInfoFile", generatedCacertsURL.path, 1)
+    logger.error("### bootstrapSSLCertificates: set URLSessionCertificateAuthorityInfoFile=\(generatedCacertsURL.path)")
 }
 
 // URL.applicationSupportDirectory exists in Darwin's Foundation but not in Android's Foundation

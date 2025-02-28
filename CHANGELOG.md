@@ -1,3 +1,9 @@
+## 0.4.0
+
+Released 2025-02-28
+
+  - Add AssetURLProtocol for loading resources from a native AssetManager (#7)
+
 ## 0.1.1
 
 Released 2024-12-01

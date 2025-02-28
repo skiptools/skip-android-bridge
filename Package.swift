@@ -9,8 +9,8 @@ let package = Package(
         .library(name: "SkipAndroidBridge", type: .dynamic, targets: ["SkipAndroidBridge"]),
     ],
     dependencies: [
-        .package(url: "https://source.skip.tools/skip.git", from: "1.2.1"),
-        .package(url: "https://source.skip.tools/skip-foundation.git", from: "1.2.0"),
+        .package(url: "https://source.skip.tools/skip.git", from: "1.2.34"),
+        .package(url: "https://source.skip.tools/skip-foundation.git", from: "1.3.1"),
         .package(url: "https://source.skip.tools/skip-bridge.git", "0.0.0"..<"2.0.0"),
         .package(url: "https://source.skip.tools/swift-android-native.git", "0.0.0"..<"2.0.0")
         //.package(path: "/opt/src/github/skiptools/swift-android-native")

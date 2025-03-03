@@ -1,0 +1,5 @@
+# Configuration file for https://skip.tools project
+skip:
+  mode: 'native'
+  bridging: true
+  dynamicroot: 'K'

@@ -7,6 +7,7 @@ let package = Package(
     platforms: [.iOS(.v16), .macOS(.v13), .tvOS(.v16), .watchOS(.v9), .macCatalyst(.v16)],
     products: [
         .library(name: "SkipAndroidBridge", type: .dynamic, targets: ["SkipAndroidBridge"]),
+        .library(name: "SkipAndroidBridgeSamples", type: .dynamic, targets: ["SkipAndroidBridgeSamples"]),
     ],
     dependencies: [
         .package(url: "https://source.skip.tools/skip.git", from: "1.2.34"),
@@ -24,6 +25,14 @@ let package = Package(
 
         .testTarget(name: "SkipAndroidBridgeTests", dependencies: [
             "SkipAndroidBridge",
+            .product(name: "SkipTest", package: "skip"),
+        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
+
+        .target(name: "SkipAndroidBridgeSamples", dependencies: [
+            "SkipAndroidBridge",
+        ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        .testTarget(name: "SkipAndroidBridgeSamplesTests", dependencies: [
+            "SkipAndroidBridgeSamples",
             .product(name: "SkipTest", package: "skip"),
         ], plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]

@@ -1,11 +1,11 @@
 // Copyright 2025 Skip
 // SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
-#if os(Android) || ROBOLECTRIC
 import Foundation
 import SkipBridge
 
 /// Override of native `Bundle` for Android that delegates to our `skip.foundation.Bundle` Kotlin object.
 open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
+    #if os(Android) || ROBOLECTRIC
     fileprivate let bundleAccess: BundleAccess
 
     open override class var main: AndroidBundle {
@@ -303,7 +303,10 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     open override var executableArchitectures: [NSNumber]? {
         fatalError()
     }
+    #endif
 }
+
+#if os(Android) || ROBOLECTRIC
 
 extension AndroidBundle : JObjectProtocol, JConvertible {
     public static func fromJavaObject(_ obj: JavaObjectPointer?, options: JConvertibleOptions) -> Self {

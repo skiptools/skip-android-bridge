@@ -59,18 +59,13 @@ public class AssetURLProtocol: URLProtocol {
             return
         }
 
-        do {
-            let assetPath = String(url.path.trimmingPrefix("/")) // Asset read paths are without preceeding slashes
-            if let data = assetManager.load(from: assetPath) {
-                sendHTTP(code: 200)
-                client.urlProtocol(self, didLoad: data)
-            } else {
-                sendHTTP(code: 404)
-            }
-        } catch {
-            client.urlProtocol(self, didFailWithError: error)
+        let assetPath = String(url.path.trimmingPrefix("/")) // Asset read paths are without preceeding slashes
+        if let data = assetManager.load(from: assetPath) {
+            sendHTTP(code: 200)
+            client.urlProtocol(self, didLoad: data)
+        } else {
+            sendHTTP(code: 404)
         }
-
     }
 
     public override class func canInit(with request: URLRequest) -> Bool {

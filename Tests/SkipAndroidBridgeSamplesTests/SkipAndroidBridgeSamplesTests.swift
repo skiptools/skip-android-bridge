@@ -66,10 +66,6 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         if isAndroid {
             XCTAssertEqual("AndroidUserDefaults: SkipAndroidBridge.UserDefaultsAccess", className)
         }
-
-        if isAndroid {
-            XCTFail("INTENTIONAL FAILURE")
-        }
     }
 
     func testUserDefaults() throws {

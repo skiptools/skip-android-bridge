@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
 #if os(Android) || ROBOLECTRIC
 import Foundation
-import SkipBridge
 
 open class AndroidUserDefaults : Foundation.UserDefaults {
     open override class var standard: AndroidUserDefaults {

@@ -1,7 +1,6 @@
 // Copyright 2025 Skip
 // SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
 import Foundation
-import SkipBridge
 
 /// Override of native `Bundle` for Android that delegates to our `skip.foundation.Bundle` Kotlin object.
 open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {

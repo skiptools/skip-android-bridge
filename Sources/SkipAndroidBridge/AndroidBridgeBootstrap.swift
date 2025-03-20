@@ -8,6 +8,7 @@ fileprivate let logger: Logger = Logger(subsystem: "skip.android.bridge", catego
 #else
 import Foundation
 @_exported import SkipBridge
+@_exported import SwiftJNI
 #if canImport(FoundationNetworking)
 @_exported import FoundationNetworking
 #endif

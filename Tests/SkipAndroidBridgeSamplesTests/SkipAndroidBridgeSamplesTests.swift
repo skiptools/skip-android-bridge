@@ -85,13 +85,13 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         XCTAssertEqual(nil, getStringDefault(name: "test"))
     }
 
-    func testDynamicAndroidContext() throws {
-        #if os(Android) || ROBOLECTRIC
-        // Unresolved reference 'dynamicAndroidContext'.
-        //let context = ProcessInfo.processInfo.dynamicAndroidContext()
-        //let cachesDir: String = try context.getCachesDir()
-        //XCTAssertEqual("", cachesDir)
-        #endif
+    func testAndroidContext() throws {
+        if !isAndroid {
+            throw XCTSkip("no package name on Robolectric")
+        }
+
+        // SkipAndroidBridgeSamplesTests.kt testAndroidContext -> SkipAndroidBridgeSamples.kt nativeAndroidContextPackageName -> SkipAndroidBridgeSamples.swift nativeAndroidContextPackageName -> AndroidContext.swift getPackageName()
+        XCTAssertEqual("skip.android.bridge.samples.test", try nativeAndroidContextPackageName())
     }
 
     // not working yet…

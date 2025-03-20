@@ -3,6 +3,10 @@
 import Foundation
 import SkipBridge
 import SkipAndroidBridge
+import SwiftJNI
+#if canImport(AndroidNative)
+import AndroidNative
+#endif
 
 public let swiftStringConstant = "s"
 
@@ -39,6 +43,14 @@ public func mainActorAsyncValue() async -> String {
     await Task.detached {
         await MainActorClass().mainActorValue()
     }.value
+}
+
+public func nativeAndroidContextPackageName() throws -> String? {
+    #if canImport(AndroidNative)
+    return try AndroidContext.application.getPackageName()
+    #else
+    fatalError("cannot import AndroidNative")
+    #endif
 }
 
 @MainActor class MainActorClass {

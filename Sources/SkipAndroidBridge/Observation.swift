@@ -9,7 +9,6 @@ import FoundationEssentials
 import Foundation
 #endif
 import Dispatch
-import SkipBridge
 
 public struct Observation {
     @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)

@@ -5,7 +5,6 @@ import Foundation
 import FoundationNetworking
 import AndroidAssetManager
 import AndroidLogging
-import SkipBridge
 
 fileprivate let logger: Logger = Logger(subsystem: "skip.android.bridge", category: "AssetURLProtocol")
 

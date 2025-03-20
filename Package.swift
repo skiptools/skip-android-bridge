@@ -14,7 +14,6 @@ let package = Package(
         .package(url: "https://source.skip.tools/skip-foundation.git", from: "1.3.1"),
         .package(url: "https://source.skip.tools/skip-bridge.git", "0.0.0"..<"2.0.0"),
         .package(url: "https://source.skip.tools/swift-android-native.git", "0.0.0"..<"2.0.0")
-        //.package(path: "/opt/src/github/skiptools/swift-android-native")
     ],
     targets: [
         .target(name: "SkipAndroidBridge", dependencies: [

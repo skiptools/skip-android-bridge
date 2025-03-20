@@ -30,7 +30,7 @@ public class AssetURLProtocol: URLProtocol {
         guard let jobj = contextAssetManager.toJavaObject(options: []) else {
             throw AndroidAssetError(errorDescription: "no value for ProcessInfo.processInfo.dynamicAndroidContext.toJavaObject")
         }
-        let am = SkipBridge.jni.withEnv { intf, env in
+        let am = JNI.jni.withEnv { intf, env in
             AndroidAssetManager(env: env, peer: jobj)
         }
         Self.assetManager = am

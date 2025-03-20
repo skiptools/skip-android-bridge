@@ -46,7 +46,7 @@ public func mainActorAsyncValue() async -> String {
 }
 
 public func nativeAndroidContextPackageName() throws -> String? {
-    #if os(Android) || os(macOS)
+    #if os(Android)
     return try AndroidContext.application.getPackageName()
     #else
     fatalError("cannot import AndroidNative")

@@ -19,7 +19,6 @@ let package = Package(
     targets: [
         .target(name: "SkipAndroidBridge", dependencies: [
             .product(name: "SkipBridge", package: "skip-bridge"),
-            .product(name: "SwiftJNI", package: "swift-jni"),
             .product(name: "SkipFoundation", package: "skip-foundation"),
             .product(name: "AndroidNative", package: "swift-android-native", condition: .when(platforms: [.android])),
         ], plugins: [.plugin(name: "skipstone", package: "skip")]),

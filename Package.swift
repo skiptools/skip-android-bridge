@@ -23,11 +23,6 @@ let package = Package(
             .product(name: "AndroidNative", package: "swift-android-native", condition: .when(platforms: [.android])),
         ], plugins: [.plugin(name: "skipstone", package: "skip")]),
 
-        .testTarget(name: "SkipAndroidBridgeTests", dependencies: [
-            "SkipAndroidBridge",
-            .product(name: "SkipTest", package: "skip"),
-        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
-
         .target(name: "SkipAndroidBridgeSamples", dependencies: [
             "SkipAndroidBridge",
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),

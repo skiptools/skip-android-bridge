@@ -319,7 +319,7 @@ extension AndroidBundle : JObjectProtocol, JConvertible {
 
 /// Allows packages to `let NSLocalizedString = AndroidLocalizedString()`, which will take
 /// precedence over `Foundation.LocalizedString`.
-public struct AndroidLocalizedString {
+public struct AndroidLocalizedString : Sendable {
     public init() {
     }
     

@@ -167,7 +167,7 @@ private func bootstrapSSLCertificates(fromCertficateFolders certsFolders: [Strin
         if (try? certsFolderURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) != true { continue }
         let certURLs = try FileManager.default.contentsOfDirectory(at: certsFolderURL, includingPropertiesForKeys: [.isRegularFileKey, .isReadableKey])
         for certURL in certURLs {
-            logger.debug("bootstrapSSLCertificates: certURL=\(certURL)")
+            //logger.debug("bootstrapSSLCertificates: certURL=\(certURL)")
             // certificate files have names like "53a1b57a.0"
             if certURL.pathExtension != "0" { continue }
             do {

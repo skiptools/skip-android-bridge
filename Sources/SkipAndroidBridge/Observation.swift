@@ -152,7 +152,11 @@ private final class BridgeObservationSupport: @unchecked Sendable {
 // Seem like Swift/lib/Threading/Errors.cpp (https://github.com/swiftlang/swift/blob/3934f78ecdd53031ac40d68499f9ee046a5abe50/lib/Threading/Errors.cpp#L13) is missing
 // Should be fixed by: https://github.com/swiftlang/swift/pull/77890
 @_cdecl("_ZN5swift9threading5fatalEPKcz")
-func swiftThreadingFatal() { }
+public func swiftThreadingFatal() {
+    // we need to do *something* here or the function will get stripped out in release mode
+    print("swiftThreadingFatal")
+}
+
 #endif
 
 #endif

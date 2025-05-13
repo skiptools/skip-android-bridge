@@ -1,8 +1,8 @@
 # SkipAndroidBridge
 
-Bridging various Swift functionality to Android for native [Skip](https://skip.tools) apps.
+Bridging various Swift functionality to Android for [Skip Fuse](https://skip.tools) apps.
 
-Documentation can be found at https://skip.tools/docs/native/.
+Documentation can be found at https://skip.tools/docs/modes/.
 
 ## License
 

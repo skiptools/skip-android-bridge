@@ -11,6 +11,11 @@ open class AndroidUserDefaults : Foundation.UserDefaults {
 
     private let userDefaultsAccess: UserDefaultsAccess
 
+    public required init(_ userDefaultsAccess: UserDefaultsAccess) {
+        self.userDefaultsAccess = userDefaultsAccess
+        super.init(suiteName: nil)!
+    }
+
     public convenience init() {
         self.init(suiteName: nil)!
     }
@@ -176,11 +181,26 @@ open class AndroidUserDefaults : Foundation.UserDefaults {
 extension AndroidUserDefaults : @unchecked Sendable {
 }
 
+extension AndroidUserDefaults : JObjectProtocol, JConvertible {
+    public static func fromJavaObject(_ obj: JavaObjectPointer?, options: JConvertibleOptions) -> Self {
+        return try! Self.init(UserDefaultsAccess(AnyDynamicObject(for: obj!, options: options)))
+    }
+
+    public func toJavaObject(options: JConvertibleOptions) -> JavaObjectPointer? {
+        return userDefaultsAccess.userDefaults.toJavaObject(options: options)
+    }
+}
+
 #if SKIP
 
 /// This bridged class gives us efficient access to `skip.foundation.UserDefaults` without bridging it to native.
 public class UserDefaultsAccess {
-    private let userDefaults: skip.foundation.UserDefaults
+    let userDefaults: skip.foundation.UserDefaults
+
+    // Fully-qualify the name here so that it bridges to AnyDynamicObject
+    public init(_ userDefaults: skip.foundation.UserDefaults) {
+        self.userDefaults = userDefaults
+    }
 
     public init(suiteName: String?) {
         userDefaults = skip.foundation.UserDefaults(suiteName: suiteName)

@@ -39,17 +39,6 @@ public func setStringDefault(name: String, value: String?) {
     UserDefaults.standard.set(value, forKey: name)
 }
 
-public func localizedStringResourceLiteralKey() -> String {
-    let literal: LocalizedStringResource = "literal"
-    return literal.key
-}
-
-public func localizedStringResourceInterpolatedKey() -> String {
-    let value = 1
-    let interpolation: AndroidLocalizedStringResource = "interpolated \(value)!"
-    return interpolation.key
-}
-
 public func mainActorAsyncValue() async -> String {
     await Task.detached {
         await MainActorClass().mainActorValue()

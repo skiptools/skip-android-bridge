@@ -94,11 +94,6 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         XCTAssertEqual("skip.android.bridge.samples.test", try nativeAndroidContextPackageName())
     }
 
-    func testLocalizedStringResource() throws {
-        XCTAssertEqual(localizedStringResourceLiteralKey(), "literal")
-        XCTAssertEqual(localizedStringResourceInterpolatedKey(), "interpolated %lld!")
-    }
-
     // not working yet…
 //    func testMainActorAsync() async throws {
 //        let value = await mainActorAsyncValue()

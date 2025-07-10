@@ -18,9 +18,15 @@ public struct AndroidLocalizedStringResource : /* Codable, */ ExpressibleByStrin
         }
     }
 
-    public init(_ key: StaticString, defaultValue: AndroidStringInterpolation, table: String? = nil, locale: Locale? = nil, bundle: BundleDescription? = nil, comment: StaticString? = nil) {
+    public init(_ key: StaticString, defaultValue: AndroidStringInterpolation? = nil, table: String? = nil, locale: Locale? = nil, bundle: BundleDescription? = nil, comment: StaticString? = nil) {
         self._key = key.description
-        self.defaultValue = defaultValue
+        if let defaultValue {
+            self.defaultValue = defaultValue
+        } else {
+            var defaultValue = AndroidStringInterpolation(literalCapacity: 0, interpolationCount: 0)
+            defaultValue.appendLiteral(key.description)
+            self.defaultValue = defaultValue
+        }
         self.table = table
         self._locale = locale
         self._bundle = bundle

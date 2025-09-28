@@ -16,6 +16,25 @@ import Foundation
 @_exported import AndroidLogging
 #elseif canImport(OSLog)
 @_exported import OSLog
+#else
+// e.g., for Linux define a local logging stub
+class Logger {
+    let subsystem: String
+    let category: String
+
+    init(subsystem: String, category: String) {
+        self.subsystem = subsystem
+        self.category = category
+    }
+
+    func log(_ string: String) {
+        print("\(subsystem)/\(category): \(string)")
+    }
+
+    func debug(_ string: String) {
+        print("\(subsystem)/\(category): \(string)")
+    }
+}
 #endif
 #if canImport(AndroidLooper)
 @_exported import AndroidLooper

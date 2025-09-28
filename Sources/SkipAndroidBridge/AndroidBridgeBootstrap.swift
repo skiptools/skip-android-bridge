@@ -146,7 +146,7 @@ private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) 
 }
 
 // URL.applicationSupportDirectory exists in Darwin's Foundation but not in Android's Foundation
-#if os(Android)
+#if !canImport(Darwin)
 // SKIP @nobridge
 extension URL {
     public static var applicationSupportDirectory: URL {

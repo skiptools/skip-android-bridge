@@ -36,5 +36,6 @@ let package = Package(
             "SkipAndroidBridgeSamples",
             .product(name: "SkipTest", package: "skip"),
         ], plugins: [.plugin(name: "skipstone", package: "skip")]),
-    ]
+    ],
+    swiftLanguageModes: [.v5]
 )

@@ -39,6 +39,11 @@ public func setStringDefault(name: String, value: String?) {
     UserDefaults.standard.set(value, forKey: name)
 }
 
+#if os(Linux)
+// workaround for missing LocalizedStringResource on Linux
+typealias LocalizedStringResource = AndroidLocalizedStringResource
+#endif
+
 public func localizedStringResourceLiteralKey() -> String {
     let literal: LocalizedStringResource = "literal"
     return literal.key

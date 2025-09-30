@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
 import Foundation
 
+#if os(Linux)
+// Bundle subclass does not build on Linux due to https://github.com/swiftlang/swift-corelibs-foundation/issues/5108
+public typealias AndroidBundle = Foundation.Bundle
+#else
 /// Override of native `Bundle` for Android that delegates to our `skip.foundation.Bundle` Kotlin object.
 open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     #if os(Android) || ROBOLECTRIC
@@ -304,6 +308,7 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     }
     #endif
 }
+#endif
 
 #if os(Android) || ROBOLECTRIC
 

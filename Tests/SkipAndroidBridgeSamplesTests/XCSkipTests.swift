@@ -1,7 +1,7 @@
 // Copyright 2024–2025 Skip
 // SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
 import Foundation
-#if os(macOS) // Skip transpiled tests only run on macOS targets
+#if os(macOS) || os(Linux)
 import SkipTest
 
 /// This test case will run the transpiled tests for the Skip module.

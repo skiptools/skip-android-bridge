@@ -127,9 +127,16 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
     }
 
     func testLocalizedStringNS() throws {
-        if isRobolectric {
+        if isRobolectric || !isJava {
             throw XCTSkip("bridged localized strings not working on Robolectric")
         }
+
+        if !isJava {
+            // we guard for !isJava because on CI we are running using the OSS Swift toolchain, which doesn't process .xcstrings files
+            // this _will_ pass when running using Xcode's swift version, but AFAIK there isn't any way to check for that at runtime
+            throw XCTSkip("xcstrings not working on Swift OSS toolchain")
+        }
+
         XCTAssertEqual(localizedStringValueNS(), "Localized into English")
     }
 

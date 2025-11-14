@@ -50,6 +50,10 @@ public func localizedStringResourceInterpolatedKey() -> String {
     return interpolation.key
 }
 
+public func localizedStringValueNS() -> String {
+    NSLocalizedString("localized", bundle: Bundle.module, comment: "localized string")
+}
+
 public func mainActorAsyncValue() async -> String {
     await Task.detached {
         await MainActorClass().mainActorValue()

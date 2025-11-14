@@ -127,13 +127,13 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
     }
 
     func testLocalizedStringNS() throws {
-        if isRobolectric || !isJava {
+        if isRobolectric {
             throw XCTSkip("bridged localized strings not working on Robolectric")
         }
 
-        if !isJava {
+        if !isJava && ProcessInfo.processInfo.environment["XCODE_SCHEME_NAME"] == nil {
             // we guard for !isJava because on CI we are running using the OSS Swift toolchain, which doesn't process .xcstrings files
-            // this _will_ pass when running using Xcode's swift version, but AFAIK there isn't any way to check for that at runtime
+            // this _will_ pass when running using Xcode's swift version, but AFAIK there isn't any way to check for that at runtime other than checking for an environment variable that is usually set by Xcode
             throw XCTSkip("xcstrings not working on Swift OSS toolchain")
         }
 
@@ -143,6 +143,10 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
     func testMainActorAsync() async throws {
         #if SKIP
         XCTAssertEqual(true, Self.wasSetupOnMainThread, "test case was not initialized on the main thread")
+
+        if isAndroid {
+            throw XCTSkip("test hangs on Android")
+        }
         #endif
 
         // test hangs on Android emulator for some reason

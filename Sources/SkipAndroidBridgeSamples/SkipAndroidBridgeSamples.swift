@@ -8,6 +8,8 @@ import SwiftJNI
 import AndroidNative
 #endif
 
+let logger: Logger = Logger(subsystem: "SkipAndroidBridgeSamples", category: "Samples")
+
 public let swiftStringConstant = "s"
 
 public func getStringValue(_ string: String?) -> String? {
@@ -74,5 +76,39 @@ public func nativeAndroidContextPackageName() throws -> String? {
 
     func mainActorValue() -> String {
         "MainActor!"
+    }
+}
+
+public typealias MainActorCallback = @MainActor () async -> ()
+
+public struct MainActorCallbacks: @unchecked Sendable {
+    let callbackMainActor: MainActorCallback
+
+    public init(callbackMainActor: @escaping MainActorCallback) {
+        self.callbackMainActor = callbackMainActor
+    }
+}
+
+// disabling causes a hang when running tests
+/*@MainActor*/ public class MainActorCallbackModel {
+    public static let shared = MainActorCallbackModel()
+    var callbacks: MainActorCallbacks?
+
+    public init(callbacks: MainActorCallbacks? = nil) {
+        self.callbacks = callbacks
+    }
+
+    public func setCallbacks(_ callbacks: MainActorCallbacks) {
+        logger.log("setting callbacks on thread: \(Thread.current)")
+        self.callbacks = callbacks
+        logger.log("done setting callbacks: \(String(describing: callbacks.callbackMainActor))")
+    }
+
+    public func doSomething() async {
+        logger.log("calling callbacks on thread: \(Thread.current)")
+        //try? await Task.sleep(for: .seconds(2))
+        //logger.log("calling callbacks: done sleeping")
+        await callbacks?.callbackMainActor()
+        logger.log("calling callbacks: done")
     }
 }

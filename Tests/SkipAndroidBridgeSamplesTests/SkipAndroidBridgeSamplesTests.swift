@@ -153,4 +153,22 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         let value = await mainActorAsyncValue()
         XCTAssertEqual("MainActor!", value)
     }
+
+    func testMainActorCallback() async throws {
+        var counter = 0
+        logger.log("setting callbacks")
+        let callbacks = MainActorCallbacks(callbackMainActor: {
+            try? await Task.sleep(nanoseconds: 1000)
+            counter += 1
+        })
+        MainActorCallbackModel.shared.setCallbacks(callbacks)
+        logger.log("setting callbacks: done")
+
+        XCTAssertEqual(0, counter)
+        logger.log("calling callbacks")
+        await MainActorCallbackModel.shared.doSomething()
+        logger.log("calling callbacks: done")
+        _ = callbacks
+        XCTAssertEqual(1, counter)
+    }
 }

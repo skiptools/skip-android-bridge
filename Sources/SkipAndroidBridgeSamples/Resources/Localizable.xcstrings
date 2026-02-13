@@ -1,0 +1,20 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "literal" : {
+
+    },
+    "localized" : {
+      "comment" : "localized string",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Localized into English"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

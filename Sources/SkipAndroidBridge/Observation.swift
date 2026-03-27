@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
 #if SKIP_BRIDGE
 
-import CJNI
+import SwiftJNI
 #if canImport(FoundationEssentials)
 import FoundationEssentials
 #else

@@ -36,29 +36,37 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         }
     }
 
-    func testResourceURL() throws {
+    func resourceURLTest(name: String, bundle: Bundle?) throws {
         if isRobolectric {
             // unwrap fails on Robolectric
             throw XCTSkip("unknown error on Robolectric")
         }
 
-        let url = try XCTUnwrap(getAssetURL(named: "sample.json"))
+        let url = try XCTUnwrap(getAssetURL(named: "\(name).json", in: bundle))
         if isRobolectric || !isJava {
             XCTAssertEqual("file", url.scheme)
-            XCTAssertEqual("sample.json", url.lastPathComponent)
+            XCTAssertEqual("\(name).json", url.lastPathComponent)
         } else {
             XCTAssertEqual("asset", url.scheme)
-            XCTAssertEqual("asset:/skip/android/bridge/samples/Resources/sample.json", url.absoluteString)
+            XCTAssertEqual("asset:/skip/android/bridge/samples/Resources/\(name).json", url.absoluteString)
         }
 
-        let expectedContents = #"{ "name": "SkipAndroidBridgeSamples" }"# + "\n"
+        let expectedContents = "{ \"name\": \"\(name)\" }\n"
 
-        let bridgedData = try XCTUnwrap(getAssetContents(named: "sample.json"))
+        let bridgedData = try XCTUnwrap(getAssetContents(named: "\(name).json", in: bundle))
         XCTAssertEqual(expectedContents, String(data: bridgedData, encoding: .utf8))
 
         // also try loading localy with the Java side of the URLProtocol
         let localData = try Data(contentsOf: url)
         XCTAssertEqual(expectedContents, String(data: localData, encoding: .utf8))
+    }
+
+    func testResourceURL() throws {
+        try resourceURLTest(name: "SkipAndroidBridgeSamples", bundle: nil)
+    }
+
+    func testResourceURLWithBundleParameter() throws {
+        try resourceURLTest(name: "SkipAndroidBridgeSamplesTests", bundle: .module)
     }
 
     func testUserDefaultsClassName() throws {

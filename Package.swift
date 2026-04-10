@@ -27,7 +27,7 @@ let package = Package(
         .testTarget(name: "SkipAndroidBridgeTests", dependencies: [
             "SkipAndroidBridge",
             .product(name: "SkipTest", package: "skip"),
-        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
 
         .target(name: "SkipAndroidBridgeSamples", dependencies: [
             "SkipAndroidBridge",
@@ -35,6 +35,6 @@ let package = Package(
         .testTarget(name: "SkipAndroidBridgeSamplesTests", dependencies: [
             "SkipAndroidBridgeSamples",
             .product(name: "SkipTest", package: "skip"),
-        ], plugins: [.plugin(name: "skipstone", package: "skip")]),
+        ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]
 )

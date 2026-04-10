@@ -18,12 +18,12 @@ public func bundleClassName() -> String {
     "\(Bundle.module)"
 }
 
-public func getAssetURL(named name: String) -> URL? {
-    Bundle.module.url(forResource: name, withExtension: nil)
+public func getAssetURL(named name: String, in bundle: Bundle? = nil) -> URL? {
+    (bundle ?? Bundle.module).url(forResource: name, withExtension: nil)
 }
 
-public func getAssetContents(named name: String) throws -> Data? {
-    guard let url = getAssetURL(named: name) else { return nil }
+public func getAssetContents(named name: String, in bundle: Bundle? = nil) throws -> Data? {
+    guard let url = getAssetURL(named: name, in: bundle) else { return nil }
     return try Data(contentsOf: url)
 }
 

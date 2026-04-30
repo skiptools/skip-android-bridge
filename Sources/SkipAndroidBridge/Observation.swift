@@ -3,6 +3,7 @@
 #if SKIP_BRIDGE
 
 import SwiftJNI
+import SkipModel
 #if canImport(FoundationEssentials)
 import FoundationEssentials
 #else
@@ -67,11 +68,18 @@ private final class BridgeObservationSupport: @unchecked Sendable {
 
     public func access<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) {
         let index = Java_init(forKeyPath: keyPath)
+        lock.wait()
+        let transaction = lastMutationTransactions[index]
+        lock.signal()
+        StateTracking.recordMutationRead(transaction)
         Java_access(index)
     }
 
     public func willSet<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) {
         let index = Java_init(forKeyPath: keyPath)
+        lock.wait()
+        lastMutationTransactions[index] = StateTracking.currentMutationTransaction
+        lock.signal()
         Java_update(index)
     }
 
@@ -135,6 +143,7 @@ private final class BridgeObservationSupport: @unchecked Sendable {
 
     private let lock = DispatchSemaphore(value: 1)
     private var indexes: [AnyKeyPath: Int] = [:]
+    private var lastMutationTransactions: [Int: StateMutationTransaction] = [:]
 
     private func index(forKeyPath keyPath: AnyKeyPath) -> Int {
         if let index = indexes[keyPath] {

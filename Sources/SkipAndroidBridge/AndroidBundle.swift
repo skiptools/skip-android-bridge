@@ -50,16 +50,19 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
         super.init(path: Foundation.Bundle.main.bundlePath)!
     }
 
-    // These inits require 'override' on Android but not iOS or ROBOLECTRIC
+    // These inits require 'override' on Android but not iOS or ROBOLECTRIC.
+    // They must not be marked unavailable because the auto-generated
+    // resource_bundle_accessor.swift (produced by the swiftbuild build system)
+    // calls Bundle(for: BundleFinder.self) as part of its fallback chain.
     #if os(Android)
-    @available(*, unavailable)
     public override init(for aClass: AnyClass) {
-        fatalError()
+        self.bundleAccess = BundleAccess.main
+        super.init(path: Foundation.Bundle.main.bundlePath)!
     }
 
-    @available(*, unavailable)
     public override init?(identifier: String) {
-        fatalError()
+        self.bundleAccess = BundleAccess.main
+        super.init(path: Foundation.Bundle.main.bundlePath)!
     }
     #endif
 

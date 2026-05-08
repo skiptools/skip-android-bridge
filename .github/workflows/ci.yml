@@ -15,4 +15,5 @@ jobs:
   call-workflow:
     uses: skiptools/actions/.github/workflows/skip-framework.yml@v1
     with:
+      skip-source: 'build-system'
       swift-android-sdk-version: "['', 'nightly-main']"

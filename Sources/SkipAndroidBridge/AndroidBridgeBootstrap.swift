@@ -64,7 +64,7 @@ public class AndroidBridge {
 /// get `Foundation` idioms working with Android conventions.
 // SKIP @bridge
 public class AndroidBridgeBootstrap {
-    private static var androidBridgeInit = false
+    nonisolated(unsafe) private static var androidBridgeInit = false
 
     /// Perform all the setup that is needed to get `Foundation` idioms working with Android conventions.
     ///

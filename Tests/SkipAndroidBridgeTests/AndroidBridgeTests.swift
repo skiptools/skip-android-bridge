@@ -29,13 +29,13 @@ final class AndroidBridgeTests: XCTestCase {
         let cacheDir = URL(fileURLWithPath: context.getCacheDir().getAbsolutePath(), isDirectory: true)
 
         if isRobolectric {
-            // Robolectric's files folder is tough to predict (e.g. /var/folders/zl/wkdjv4s1271fbm6w0plzknkh0000gn/T/robolectric-AndroidBridgeTests_testAndroidBridge_SkipAndroidBridge_debugUnitTest10131350412654065418/skip.android.bridge.test-dataDir/files)
-            XCTAssertTrue(filesDir.path.hasSuffix("/files"), "unexpected filesDir.path: \(filesDir.path)")
-            XCTAssertTrue(cacheDir.path.hasSuffix("/cache"), "unexpected cacheDir.path: \(cacheDir.path)")
+            // Robolectric's files folder is tough to predict (e.g. /var/folders/zl/wkdjv4s1271fbm6w0plzknkh0000gn/T/robolectric-AndroidBridgeTests_testAndroidBridge_SkipAndroidBridge_debugUnitTest10131350412654065418/skip.android.bridge.module.test-dataDir/files)
+            XCTAssertTrue(filesDir.path.hasSuffix("/skip.android.bridge.module.test-dataDir/files"), "unexpected filesDir.path: \(filesDir.path)")
+            XCTAssertTrue(cacheDir.path.hasSuffix("/skip.android.bridge.module.test-dataDir/cache"), "unexpected cacheDir.path: \(cacheDir.path)")
         } else {
             // …but Android is predictably the app's "files" and "cache" directories
-            XCTAssertEqual("/data/user/0/skip.android.bridge.test/files", filesDir.path)
-            XCTAssertEqual("/data/user/0/skip.android.bridge.test/cache", cacheDir.path)
+            XCTAssertEqual("/data/user/0/skip.android.bridge.module.test/files", filesDir.path)
+            XCTAssertEqual("/data/user/0/skip.android.bridge.module.test/cache", cacheDir.path)
         }
 
         // make sure we can read and write to the filesDir

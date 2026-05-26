@@ -99,7 +99,7 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         }
 
         // SkipAndroidBridgeSamplesTests.kt testAndroidContext -> SkipAndroidBridgeSamples.kt nativeAndroidContextPackageName -> SkipAndroidBridgeSamples.swift nativeAndroidContextPackageName -> AndroidContext.swift getPackageName()
-        XCTAssertEqual("skip.android.bridge.samples.test", try nativeAndroidContextPackageName())
+        XCTAssertEqual("skip.android.bridge.samples.module.test", try nativeAndroidContextPackageName())
     }
 
     func testLocalizedStringResource() throws {

@@ -7,7 +7,7 @@ open class AndroidUserDefaults : Foundation.UserDefaults {
     open override class var standard: AndroidUserDefaults {
         return _standard
     }
-    private static let _standard = AndroidUserDefaults()
+    nonisolated(unsafe) private static let _standard = AndroidUserDefaults()
 
     private let userDefaultsAccess: UserDefaultsAccess
 

@@ -5,6 +5,7 @@ import Foundation
 import FoundationNetworking
 import AndroidAssetManager
 import AndroidLogging
+@preconcurrency import SwiftJNI
 
 fileprivate let logger: Logger = Logger(subsystem: "skip.android.bridge", category: "AssetURLProtocol")
 

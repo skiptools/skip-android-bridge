@@ -5,16 +5,17 @@ import Foundation
 import FoundationNetworking
 import AndroidAssetManager
 import AndroidLogging
+@preconcurrency import SwiftJNI
 
 fileprivate let logger: Logger = Logger(subsystem: "skip.android.bridge", category: "AssetURLProtocol")
 
 /// A custom URLProtocol that serves requests from the native Android `AAssetManager`, which is implemented in `swift-android-native / AndroidAssetManager.swift`
 public class AssetURLProtocol: URLProtocol {
     /// The URL scheme that this protocol handles
-    public static var scheme = "asset"
+    public static let scheme = "asset"
 
-    private static var registered = false
-    private static var assetManager: AndroidAssetManager? = nil
+    nonisolated(unsafe) private static var registered = false
+    nonisolated(unsafe) private static var assetManager: AndroidAssetManager? = nil
 
     public static func register() throws {
         if registered { return }

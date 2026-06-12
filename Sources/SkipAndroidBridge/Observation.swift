@@ -61,18 +61,70 @@ public struct Observation {
     }
 }
 
+/// Hooks for an upper layer (SkipFuseUI) to thread per-slot animation provenance through
+/// bridged observable property accesses: `willSet` stamps the property's slot with the
+/// current scope's token and `access` reports a stamped slot's token back. Both default to
+/// nil so the bookkeeping is skipped entirely unless a UI layer installs them.
+public enum BridgedObservationProvenance {
+    /// Returns the provenance token of the innermost active animation scope, or nil.
+    nonisolated(unsafe) public static var currentToken: (() -> Any?)?
+    /// Records that a property whose last write was stamped with `token` was just read.
+    nonisolated(unsafe) public static var recordRead: ((Any) -> Void)?
+}
+
 private final class BridgeObservationSupport: @unchecked Sendable {
     init() {
     }
 
     public func access<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) {
+        recordProvenanceRead(at: keyPath)
         let index = Java_init(forKeyPath: keyPath)
         Java_access(index)
     }
 
     public func willSet<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) {
+        stampProvenance(at: keyPath)
         let index = Java_init(forKeyPath: keyPath)
         Java_update(index)
+    }
+
+    // Per-keyPath animation provenance stamps, mirroring the per-slot design of the
+    // Kotlin-side `MutableStateBacking` ledger and SkipFuseUI's `Box.lastWriteAnimation`:
+    // a write inside an animation scope stamps the slot, a plain write clears the stale
+    // stamp, and a read reports the stamp so the UI layer's read cursor can pair it with
+    // the consuming modifier. Keyed directly by the keyPath — pure native bookkeeping,
+    // deliberately independent of the Kotlin peer (whose `Java_init` index degrades to a
+    // single shared slot when `skip.model` is not on the classpath). Lazily allocated so
+    // observables that are never mutated inside an animation scope pay nothing.
+    private var provenanceStamps: [AnyKeyPath: Any]? = nil
+
+    private func stampProvenance(at keyPath: AnyKeyPath) {
+        guard let currentToken = BridgedObservationProvenance.currentToken else {
+            return
+        }
+        let token = currentToken()
+        lock.wait()
+        defer { lock.signal() }
+        if token != nil || provenanceStamps != nil {
+            if provenanceStamps == nil {
+                provenanceStamps = [:]
+            }
+            // A nil token removes the entry, clearing a stale stamp from a prior
+            // animation-scoped write so a later plain write correctly snaps.
+            provenanceStamps![keyPath] = token
+        }
+    }
+
+    private func recordProvenanceRead(at keyPath: AnyKeyPath) {
+        guard let recordRead = BridgedObservationProvenance.recordRead else {
+            return
+        }
+        lock.wait()
+        let token = provenanceStamps?[keyPath]
+        lock.signal()
+        if let token {
+            recordRead(token)
+        }
     }
 
     private static let Java_stateClass = try? JClass(name: "skip/model/MutableStateBacking")

@@ -1,21 +1,62 @@
 // Copyright 2025–2026 Skip
 // SPDX-License-Identifier: MPL-2.0
 import Foundation
+#if os(Android) || ROBOLECTRIC
+import SwiftJNI // for isJNIInitialized (no-JVM fallback in the bundle path)
+#endif
 
 /// Override of native `Bundle` for Android that delegates to our `skip.foundation.Bundle` Kotlin object.
 open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     #if os(Android) || ROBOLECTRIC
-    fileprivate let bundleAccess: BundleAccess
+    /// The Kotlin-backed bundle. `nil` only in the no-JVM fallback (bare native execution), where the
+    /// overrides below delegate to `super` (native `Foundation.Bundle`) reading the on-disk `.resources`.
+    fileprivate let bundleAccess: BundleAccess?
 
     open override class var main: AndroidBundle {
+        #if os(Android)
+        // With no JVM/JNI (e.g. running as a bare native executable rather than an Android app), the Kotlin
+        // bridge is unavailable, so back the main bundle with the native Foundation main bundle instead of
+        // trapping. This lets the SwiftPM resource accessor resolve `<exe-dir>/<pkg>_<module>.resources`.
+        if !isJNIInitialized { return _fallbackMain }
+        #endif
         return _main
     }
     private static let _main = AndroidBundle(BundleAccess.main)
+    #if os(Android)
+    private static let _fallbackMain = AndroidBundle(fallbackPath: Foundation.Bundle.main.bundlePath)
+    #endif
+
+    /// The path passed to the `NSBundle` designated initializer that backs this `AndroidBundle`.
+    /// On Robolectric (host JVM, `!os(Android)`), `NSBundle(path:)` caches instances by path, so
+    /// initializing with the (already-cached) main bundle path returns the shared main `NSBundle`
+    /// instead of a distinct `AndroidBundle`. Use a unique non-cached path there so we get our subclass.
+    private static func backingBundlePath() -> String {
+        #if os(Android)
+        return Foundation.Bundle.main.bundlePath
+        #else
+        // NSBundle(path:) requires an existing path and caches by it; create a unique directory so each
+        // AndroidBundle gets a distinct backing instance (a shared/cached path would collapse them all
+        // into one and re-initializing with the main bundle path returns the shared main NSBundle).
+        let dir = NSTemporaryDirectory() + "AndroidBundle-" + UUID().uuidString
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        return dir
+        #endif
+    }
 
     public required init(_ bundleAccess: BundleAccess) {
         self.bundleAccess = bundleAccess
-        super.init(path: Foundation.Bundle.main.bundlePath)!
+        super.init(path: Self.backingBundlePath())!
     }
+
+    #if os(Android)
+    /// No-JVM fallback: behave as a plain native `Foundation.Bundle` rooted at the given on-disk path
+    /// (e.g. the SwiftPM `<pkg>_<module>.resources` directory), reading resources from the filesystem the
+    /// same way they are resolved on Linux. `bundleAccess` is nil so every override delegates to `super`.
+    private init(fallbackPath: String) {
+        self.bundleAccess = nil
+        super.init(path: fallbackPath)!
+    }
+    #endif
 
     /// This constructor accepts extra parameters to check whether the given path is the Linux-expected module
     /// bundle path, and if so re-map the resulting internal Bundle to use the given Bundle instead.
@@ -24,6 +65,16 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     ///   - Parameter moduleName: The name of the module constructing this instance.
     ///   - Parameter moduleBundle: A block to invoke to receive the module's `skip.foundation.Bundle`.
     public init?(path: String, moduleName: String? = nil, moduleBundle: (() -> AnyDynamicObject)? = nil) {
+        #if os(Android)
+        if !isJNIInitialized {
+            // No JVM/JNI (bare native execution): there is no Kotlin runtime or Android AssetManager, so
+            // read the on-disk SwiftPM `.resources` directory directly via native Foundation (the Linux path).
+            guard FileManager.default.fileExists(atPath: path) else { return nil }
+            self.bundleAccess = nil
+            super.init(path: path)!
+            return
+        }
+        #endif
         var bundleAccess: BundleAccess? = nil
         // To form the expected module bundle path, Linux uses:
         // <Bundle.main.bundlePath>/<package-name>_<module-name>.resources
@@ -36,18 +87,36 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
             }
         }
         if bundleAccess == nil {
+            #if !os(Android)
+            // On the host (Robolectric) `Bundle.main` is the JVM executable, so the SwiftPM
+            // resource accessor's first probe (`Bundle.main + "<pkg>_<module>.bundle"`) does not exist;
+            // return nil for missing paths (matching Foundation) so the accessor falls through to its
+            // build-path fallback — the real resource `.bundle` on the host filesystem, which our Kotlin
+            // `skip.foundation.Bundle` then reads via `java.io` (no Android asset context required).
+            guard FileManager.default.fileExists(atPath: path) else {
+                return nil
+            }
+            #endif
             bundleAccess = BundleAccess(path: path)
         }
         guard let bundleAccess else {
             return nil
         }
         self.bundleAccess = bundleAccess
-        super.init(path: Foundation.Bundle.main.bundlePath)!
+        super.init(path: Self.backingBundlePath())!
     }
 
     public init?(url: URL) {
+        #if os(Android)
+        if !isJNIInitialized {
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            self.bundleAccess = nil
+            super.init(path: url.path)!
+            return
+        }
+        #endif
         self.bundleAccess = BundleAccess(url: url)
-        super.init(path: Foundation.Bundle.main.bundlePath)!
+        super.init(path: Self.backingBundlePath())!
     }
 
     // These inits require 'override' on Android but not iOS or ROBOLECTRIC.
@@ -56,21 +125,37 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     // calls Bundle(for: BundleFinder.self) as part of its fallback chain.
     #if os(Android)
     public override init(for aClass: AnyClass) {
+        // No-JVM fallback: back with the native Foundation main bundle (the executable's directory).
+        if !isJNIInitialized {
+            self.bundleAccess = nil
+            super.init(path: Foundation.Bundle.main.bundlePath)!
+            return
+        }
         self.bundleAccess = BundleAccess.main
-        super.init(path: Foundation.Bundle.main.bundlePath)!
+        super.init(path: Self.backingBundlePath())!
     }
 
     public override init?(identifier: String) {
+        if !isJNIInitialized {
+            self.bundleAccess = nil
+            super.init(path: Foundation.Bundle.main.bundlePath)!
+            return
+        }
         self.bundleAccess = BundleAccess.main
-        super.init(path: Foundation.Bundle.main.bundlePath)!
+        super.init(path: Self.backingBundlePath())!
     }
     #endif
 
     public static func == (lhs: AndroidBundle, rhs: AndroidBundle) -> Bool {
-        lhs.bundleAccess == rhs.bundleAccess
+        switch (lhs.bundleAccess, rhs.bundleAccess) {
+        case let (l?, r?): return l == r
+        case (nil, nil): return lhs.bundlePath == rhs.bundlePath
+        default: return false
+        }
     }
 
     open override var description: String {
+        guard let bundleAccess else { return "AndroidBundle: \(super.description)" }
         return "AndroidBundle: \(bundleAccess.description)"
     }
 
@@ -110,10 +195,12 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     }
 
     open override var bundleURL: URL {
+        guard let bundleAccess else { return super.bundleURL }
         return bundleAccess.bundleURL
     }
 
     open override var resourceURL: URL? {
+        guard let bundleAccess else { return super.resourceURL }
         return bundleAccess.resourceURL
     }
 
@@ -153,10 +240,12 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     }
 
     open override var bundlePath: String {
+        guard let bundleAccess else { return super.bundlePath }
         return bundleAccess.bundlePath
     }
 
     open override var resourcePath: String? {
+        guard let bundleAccess else { return super.resourcePath }
         return bundleAccess.resourcePath
     }
 
@@ -191,6 +280,7 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     }
 
     open override class func url(forResource name: String?, withExtension ext: String?, subdirectory subpath: String?, in bundleURL: URL) -> URL? {
+        if !isJNIInitialized { return super.url(forResource: name, withExtension: ext, subdirectory: subpath, in: bundleURL) }
         return BundleAccess.url(forResource: name, withExtension: ext, subdirectory: subpath, in: bundleURL)
     }
 
@@ -200,14 +290,17 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
 //    }
 
     open override func url(forResource name: String?, withExtension ext: String?) -> URL? {
+        guard let bundleAccess else { return super.url(forResource: name, withExtension: ext) }
         return bundleAccess.url(forResource: name, withExtension: ext)
     }
 
     open override func url(forResource name: String?, withExtension ext: String?, subdirectory subpath: String?) -> URL? {
+        guard let bundleAccess else { return super.url(forResource: name, withExtension: ext, subdirectory: subpath) }
         return bundleAccess.url(forResource: name, withExtension: ext, subdirectory: subpath)
     }
 
     open override func url(forResource name: String?, withExtension ext: String?, subdirectory subpath: String?, localization localizationName: String?) -> URL? {
+        guard let bundleAccess else { return super.url(forResource: name, withExtension: ext, subdirectory: subpath, localization: localizationName) }
         return bundleAccess.url(forResource: name, withExtension: ext, subdirectory: subpath, localization: localizationName)
     }
 
@@ -221,50 +314,62 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
 //    }
 
     open override class func path(forResource name: String?, ofType ext: String?, inDirectory bundlePath: String) -> String? {
+        if !isJNIInitialized { return super.path(forResource: name, ofType: ext, inDirectory: bundlePath) }
         return BundleAccess.path(forResource: name, ofType: ext, inDirectory: bundlePath)
     }
 
     open override class func paths(forResourcesOfType ext: String?, inDirectory bundlePath: String) -> [String] {
+        if !isJNIInitialized { return super.paths(forResourcesOfType: ext, inDirectory: bundlePath) }
         return BundleAccess.paths(forResourcesOfType: ext, inDirectory: bundlePath)
     }
 
     open override func path(forResource name: String?, ofType ext: String?) -> String? {
+        guard let bundleAccess else { return super.path(forResource: name, ofType: ext) }
         return bundleAccess.path(forResource: name, ofType: ext)
     }
 
     open override func path(forResource name: String?, ofType ext: String?, inDirectory subpath: String?) -> String? {
+        guard let bundleAccess else { return super.path(forResource: name, ofType: ext, inDirectory: subpath) }
         return bundleAccess.path(forResource: name, ofType: ext, inDirectory: subpath)
     }
 
     open override func path(forResource name: String?, ofType ext: String?, inDirectory subpath: String?, forLocalization localizationName: String?) -> String? {
+        guard let bundleAccess else { return super.path(forResource: name, ofType: ext, inDirectory: subpath, forLocalization: localizationName) }
         return bundleAccess.path(forResource: name, ofType: ext, inDirectory: subpath, forLocalization: localizationName)
     }
 
     open override func paths(forResourcesOfType ext: String?, inDirectory subpath: String?) -> [String] {
+        guard let bundleAccess else { return super.paths(forResourcesOfType: ext, inDirectory: subpath) }
         return bundleAccess.paths(forResourcesOfType: ext, inDirectory: subpath)
     }
 
     open override func paths(forResourcesOfType ext: String?, inDirectory subpath: String?, forLocalization localizationName: String?) -> [String] {
+        guard let bundleAccess else { return super.paths(forResourcesOfType: ext, inDirectory: subpath, forLocalization: localizationName) }
         return bundleAccess.paths(forResourcesOfType: ext, inDirectory: subpath, forLocalization: localizationName)
     }
 
     open override func localizedString(forKey key: String, value: String?, table tableName: String?) -> String {
+        guard let bundleAccess else { return super.localizedString(forKey: key, value: value, table: tableName) }
         return bundleAccess.localizedString(forKey: key, value: value, table: tableName)
     }
 
     open override var bundleIdentifier: String? {
+        guard let bundleAccess else { return super.bundleIdentifier }
         return bundleAccess.bundleIdentifier
     }
 
     open override var infoDictionary: [String : Any]? {
+        guard let bundleAccess else { return super.infoDictionary }
         return bundleAccess.infoDictionary
     }
 
     open override var localizedInfoDictionary: [String : Any]? {
+        guard let bundleAccess else { return super.localizedInfoDictionary }
         return bundleAccess.localizedInfoDictionary
     }
 
     open override func object(forInfoDictionaryKey key: String) -> Any? {
+        guard let bundleAccess else { return super.object(forInfoDictionaryKey: key) }
         return bundleAccess.object(forInfoDictionaryKey: key)
     }
 
@@ -284,10 +389,12 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
     }
 
     open override var localizations: [String] {
+        guard let bundleAccess else { return super.localizations }
         return bundleAccess.localizations
     }
 
     open override var developmentLocalization: String? {
+        guard let bundleAccess else { return super.developmentLocalization }
         return bundleAccess.developmentLocalization
     }
 
@@ -316,6 +423,7 @@ extension AndroidBundle : JObjectProtocol, JConvertible {
     }
 
     public func toJavaObject(options: JConvertibleOptions) -> JavaObjectPointer? {
+        guard let bundleAccess else { return nil } // no Kotlin bundle in the no-JVM fallback
         return bundleAccess.bundle.toJavaObject(options: options)
     }
 }
@@ -327,6 +435,13 @@ public struct AndroidLocalizedString : Sendable {
     }
     
     public func callAsFunction(_ key: String, tableName: String? = nil, bundle: AndroidBundle? = nil, value: String? = nil, comment: String) -> String {
+        #if os(Android)
+        if !isJNIInitialized {
+            // No JVM/JNI: resolve via the (native Foundation-backed) bundle's own filesystem lookup rather
+            // than the Kotlin NSLocalizedStringAccess bridge, which would trap.
+            return (bundle ?? AndroidBundle.main).localizedString(forKey: key, value: value, table: tableName)
+        }
+        #endif
         return NSLocalizedStringAccess(key, tableName: tableName, bundle: bundle?.bundleAccess, value: value, comment: comment)
     }
 }

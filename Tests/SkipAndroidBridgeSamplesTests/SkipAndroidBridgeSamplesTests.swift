@@ -31,16 +31,16 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         let className = bundleClassName()
         if isAndroid {
             XCTAssertEqual("AndroidBundle: bundle: class skip.android.bridge.samples._ModuleBundleLocator", className)
+        } else if isRobolectric {
+            // On Robolectric the module bundle resolves to an AndroidBundle backed by the host
+            // filesystem resource bundle (read by our Kotlin Bundle via java.io).
+            XCTAssertTrue(className.hasPrefix("AndroidBundle:"), "unexpected bundle class name: \(className)")
         } else {
             XCTAssertTrue(className.hasPrefix("NSBundle"), "unexpected bundle class name: \(className)")
         }
     }
 
     func resourceURLTest(name: String, bundle: Bundle?) throws {
-        if isRobolectric {
-            // unwrap fails on Robolectric
-            throw XCTSkip("unknown error on Robolectric")
-        }
 
         let url = try XCTUnwrap(getAssetURL(named: "\(name).json", in: bundle))
         if isRobolectric || !isJava {
@@ -66,6 +66,11 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
     }
 
     func testResourceURLWithBundleParameter() throws {
+        if isRobolectric {
+            // The transpiled-Kotlin `Bundle.module` reads via the Android asset context (asset:// URLs)
+            // on Robolectric, unlike the native filesystem-backed module bundle; covered on-device.
+            throw XCTSkip("Kotlin module bundle uses asset URLs on Robolectric")
+        }
         try resourceURLTest(name: "SkipAndroidBridgeSamplesTests", bundle: .module)
     }
 

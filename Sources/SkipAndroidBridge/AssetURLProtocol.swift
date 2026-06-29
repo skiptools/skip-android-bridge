@@ -3,7 +3,7 @@
 #if os(Android)
 import Foundation
 import FoundationNetworking
-import AndroidAssetManager
+import AndroidFileManager
 import AndroidLogging
 @preconcurrency import SwiftJNI
 
@@ -15,7 +15,7 @@ public class AssetURLProtocol: URLProtocol {
     public static let scheme = "asset"
 
     nonisolated(unsafe) private static var registered = false
-    nonisolated(unsafe) private static var assetManager: AndroidAssetManager? = nil
+    nonisolated(unsafe) private static var assetManager: AssetManager? = nil
 
     public static func register() throws {
         if registered { return }
@@ -32,7 +32,7 @@ public class AssetURLProtocol: URLProtocol {
             throw AndroidAssetError(errorDescription: "no value for ProcessInfo.processInfo.dynamicAndroidContext.toJavaObject")
         }
         let am = JNI.jni.withEnv { intf, env in
-            AndroidAssetManager(env: env, peer: jobj)
+            AssetManager.fromJava(jobj, environment: env)
         }
         Self.assetManager = am
         Self.registered = true
@@ -88,6 +88,19 @@ public struct AndroidAssetError : LocalizedError {
 
     public init(errorDescription: String? = nil) {
         self.errorDescription = errorDescription
+    }
+}
+
+private extension AssetManager {
+    /// Reads the entire contents of the named asset into `Data`, or returns nil if it cannot be
+    /// opened or read. Replaces the former `AndroidAssetManager.load(from:)` convenience that the
+    /// swift-android-sdk `AndroidFileManager.AssetManager` does not provide.
+    func load(from path: String) -> Data? {
+        guard let asset = try? open(path) else { return nil }
+        return try? asset.readAll { (buffer: UnsafeRawBufferPointer) -> Data in
+            guard let base = buffer.baseAddress else { return Data() }
+            return Data(bytes: base, count: buffer.count)
+        }
     }
 }
 

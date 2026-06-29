@@ -12,9 +12,10 @@ let package = Package(
     dependencies: [
         .package(url: "https://source.skip.tools/skip.git", from: "1.2.34"),
         .package(url: "https://source.skip.tools/skip-foundation.git", from: "1.3.1"),
-        .package(url: "https://source.skip.tools/swift-jni.git", "0.0.0"..<"2.0.0"),
+        //.package(url: "https://source.skip.tools/swift-jni.git", "0.0.0"..<"2.0.0"),
+        .package(url: "https://source.skip.tools/swift-jni.git", branch: "swift-java-jni-cutover"), // ### REMOVEME
         .package(url: "https://source.skip.tools/skip-bridge.git", "0.0.0"..<"2.0.0"),
-        .package(url: "https://source.skip.tools/swift-android-native.git", from: "1.4.1")
+        .package(url: "https://github.com/swift-android-sdk/swift-android-native.git", from: "2.0.1")
     ],
     targets: [
         .target(name: "SkipAndroidBridge", dependencies: [
@@ -31,6 +32,9 @@ let package = Package(
 
         .target(name: "SkipAndroidBridgeSamples", dependencies: [
             "SkipAndroidBridge",
+            // swift-android-native fork v2 no longer re-exports AndroidContext through AndroidNative,
+            // so depend on the AndroidContext product directly for the sample that reads the package name.
+            .product(name: "AndroidContext", package: "swift-android-native", condition: .when(platforms: [.android])),
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
         .testTarget(name: "SkipAndroidBridgeSamplesTests", dependencies: [
             "SkipAndroidBridgeSamples",
@@ -38,3 +42,26 @@ let package = Package(
         ], resources: [.process("Resources")], plugins: [.plugin(name: "skipstone", package: "skip")]),
     ]
 )
+
+// SKIP_DEPENDENCY_ROOT overrides skiptools dependencies with local `.package(path:)` checkouts so this
+// package can be built/tested against unreleased local changes (e.g. the swift-java-jni-core cutover).
+// In CI/normal builds the variable is unset and remote versions resolve as usual. swift-android-native
+// intentionally stays on its declared (fork) URL — only skip* deps and swift-jni are overridden.
+if let dependencyRoot = Context.environment["SKIP_DEPENDENCY_ROOT"] {
+    package.dependencies = package.dependencies.map { dep in
+        switch dep.kind {
+        case .sourceControl(_, let location, _):
+            guard let baseName = location.split(separator: "/").last?.split(separator: ".").first else {
+                return dep
+            }
+            // Remap skip* and swift-jni (the SWIFT_JAVA_JNI_CORE substrate; a direct dep here) to local;
+            // leave swift-android-native on its declared fork URL.
+            guard baseName.hasPrefix("skip") || baseName == "swift-jni" else {
+                return dep
+            }
+            return Package.Dependency.package(path: dependencyRoot + "/" + baseName)
+        default:
+            return dep
+        }
+    }
+}

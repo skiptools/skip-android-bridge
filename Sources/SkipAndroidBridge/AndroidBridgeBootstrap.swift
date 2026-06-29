@@ -87,10 +87,10 @@ public class AndroidBridgeBootstrap {
         try AssetURLProtocol.register()
         logger.debug("initAndroidBridge: bootstrapTimezone")
         try bootstrapTimezone()
-        logger.debug("initAndroidBridge: setupCACerts")
-        try AndroidBootstrap.setupCACerts()
-        logger.debug("initAndroidBridge: AndroidLooper.setupMainLooper")
-        let _ = AndroidLooper.setupMainLooper()
+        // CA-certificate bootstrap for URLSession HTTPS is now provided by the Swift SDK for Android,
+        // so the former AndroidBootstrap.setupCACerts() call is no longer needed.
+        logger.debug("initAndroidBridge: AndroidMainActor.setupMainLooper")
+        let _ = AndroidMainActor.setupMainLooper()
         logger.debug("initAndroidBridge: done")
         #endif
         logger.debug("AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")
@@ -139,4 +139,34 @@ extension URL {
     }
 }
 
+#endif
+
+#if os(Android)
+/// Minimal OSLog-`Logger`-compatible shim for Android.
+///
+/// The skiptools `AndroidLogging` used to vend an OSLog-style `Logger`; the swift-android-sdk
+/// `AndroidLogging` vends `AndroidLogger` instead. This re-provides the small `Logger` surface this
+/// module relies on, forwarding messages to logcat via `AndroidLogger` (`__android_log_write`).
+/// `AndroidLogger`/`LogTag`/`LogPriority` are available via the module's `@_exported import AndroidLogging`.
+public struct Logger: Sendable {
+    private let tag: LogTag
+
+    public init(subsystem: String, category: String) {
+        self.tag = LogTag(rawValue: category)
+    }
+
+    public func trace(_ message: String) { emit(message, .verbose) }
+    public func debug(_ message: String) { emit(message, .debug) }
+    public func info(_ message: String) { emit(message, .info) }
+    public func notice(_ message: String) { emit(message, .info) }
+    public func warning(_ message: String) { emit(message, .warning) }
+    public func error(_ message: String) { emit(message, .error) }
+    public func critical(_ message: String) { emit(message, .error) }
+    public func fault(_ message: String) { emit(message, .error) }
+    public func log(_ message: String) { emit(message, .info) }
+
+    private func emit(_ message: String, _ priority: LogPriority) {
+        try? AndroidLogger(tag: tag, priority: priority).log(message)
+    }
+}
 #endif

@@ -4,6 +4,7 @@ import Foundation
 #if os(Android) || ROBOLECTRIC
 import SwiftJNI // for isJNIInitialized (no-JVM fallback in the bundle path)
 #endif
+#if os(Android) || ROBOLECTRIC || canImport(Darwin)
 
 /// Override of native `Bundle` for Android that delegates to our `skip.foundation.Bundle` Kotlin object.
 open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
@@ -574,5 +575,6 @@ public func NSLocalizedStringAccess(_ key: String, tableName: String? = nil, bun
     return NSLocalizedString(key, tableName: tableName, bundle: bundle?.bundle, value: value, comment: comment)
 }
 
+#endif
 #endif
 #endif

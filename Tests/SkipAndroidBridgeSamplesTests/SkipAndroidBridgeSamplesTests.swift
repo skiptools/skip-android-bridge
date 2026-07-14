@@ -36,7 +36,12 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
             // filesystem resource bundle (read by our Kotlin Bundle via java.io).
             XCTAssertTrue(className.hasPrefix("AndroidBundle:"), "unexpected bundle class name: \(className)")
         } else {
+            #if canImport(Darwin)
             XCTAssertTrue(className.hasPrefix("NSBundle"), "unexpected bundle class name: \(className)")
+            #else
+            // swift-corelibs-Foundation (linux-gnu host) names the class "Bundle", not Darwin's "NSBundle"
+            XCTAssertTrue(className.hasPrefix("NSBundle") || className.hasPrefix("Bundle"), "unexpected bundle class name: \(className)")
+            #endif
         }
     }
 

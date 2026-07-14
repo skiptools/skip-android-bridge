@@ -32,9 +32,11 @@ public struct AndroidLocalizedStringResource : /* Codable, */ ExpressibleByStrin
         self._bundle = bundle
     }
 
+#if os(Android) || ROBOLECTRIC || canImport(Darwin)
     public init(_ key: StaticString, defaultValue: AndroidStringInterpolation, table: String? = nil, locale: Locale? = nil, bundle: AndroidBundle, comment: StaticString? = nil) {
         self.init(key, defaultValue: defaultValue, table: table, locale: locale, bundle: BundleDescription.from(bundle: bundle), comment: comment)
     }
+#endif
 
     public init(_ keyAndValue: AndroidStringInterpolation, table: String? = nil, locale: Locale? = nil, bundle: BundleDescription? = nil, comment: StaticString? = nil) {
         self._key = nil
@@ -44,9 +46,11 @@ public struct AndroidLocalizedStringResource : /* Codable, */ ExpressibleByStrin
         self._bundle = bundle
     }
 
+#if os(Android) || ROBOLECTRIC || canImport(Darwin)
     public init(_ keyAndValue: AndroidStringInterpolation, table: String? = nil, locale: Locale? = nil, bundle: AndroidBundle, comment: StaticString? = nil) {
         self.init(keyAndValue, table: table, locale: locale, bundle: BundleDescription.from(bundle: bundle), comment: comment)
     }
+#endif
 
     public init(stringLiteral: String) {
         self._key = nil

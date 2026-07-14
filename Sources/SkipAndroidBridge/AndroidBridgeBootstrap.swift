@@ -16,6 +16,16 @@ import Foundation
 @_exported import AndroidLogging
 #elseif canImport(OSLog)
 @_exported import OSLog
+#else
+/// Compile-only Logger shim for non-Android Linux hosts (skip export host pass).
+public struct Logger: Sendable {
+    public init(subsystem: String, category: String) {}
+    public func debug(_ message: String) {}
+    public func info(_ message: String) {}
+    public func warning(_ message: String) {}
+    public func error(_ message: String) {}
+    public func log(_ message: String) {}
+}
 #endif
 #if canImport(AndroidLooper)
 @_exported import AndroidLooper
@@ -127,7 +137,7 @@ private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) 
 }
 
 // URL.applicationSupportDirectory exists in Darwin's Foundation but not in Android's Foundation
-#if os(Android)
+#if os(Android) || os(Linux)
 // SKIP @nobridge
 extension URL {
     public static var applicationSupportDirectory: URL {

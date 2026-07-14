@@ -40,8 +40,14 @@ public func setStringDefault(name: String, value: String?) {
 }
 
 public func localizedStringResourceLiteralKey() -> String {
+#if os(Android) || ROBOLECTRIC || canImport(Darwin)
     let literal: LocalizedStringResource = "literal"
     return literal.key
+#else
+    // LocalizedStringResource is unavailable in linux-gnu Foundation (skip export host pass);
+    // the key of a string-literal resource is the literal itself.
+    return "literal"
+#endif
 }
 
 public func localizedStringResourceInterpolatedKey() -> String {

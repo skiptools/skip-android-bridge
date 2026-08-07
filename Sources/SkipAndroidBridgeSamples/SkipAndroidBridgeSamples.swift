@@ -7,6 +7,9 @@ import SwiftJNI
 #if canImport(AndroidNative)
 import AndroidNative
 #endif
+#if canImport(AndroidContext)
+import AndroidContext
+#endif
 
 public let swiftStringConstant = "s"
 

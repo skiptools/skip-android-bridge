@@ -10,11 +10,11 @@ let package = Package(
         .library(name: "SkipAndroidBridgeSamples", type: .dynamic, targets: ["SkipAndroidBridgeSamples"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/skiptools/skip.git", from: "1.2.34"),
-        .package(url: "https://github.com/skiptools/skip-foundation.git", from: "1.3.1"),
-        .package(url: "https://github.com/skiptools/swift-jni.git", "0.0.0"..<"2.0.0"),
-        .package(url: "https://github.com/skiptools/skip-bridge.git", "0.0.0"..<"2.0.0"),
-        .package(url: "https://github.com/skiptools/swift-android-native.git", from: "1.4.1")
+        .package(url: "https://github.com/skiptools/skip.git", from: "1.9.6"),
+        .package(url: "https://github.com/skiptools/skip-foundation.git", from: "1.4.3"),
+        .package(url: "https://github.com/skiptools/swift-jni.git", "0.5.0"..<"2.0.0"),
+        .package(url: "https://github.com/skiptools/skip-bridge.git", "0.17.3"..<"2.0.0"),
+        .package(url: "https://github.com/skiptools/swift-android-native.git", from: "1.5.1")
     ],
     targets: [
         .target(name: "SkipAndroidBridge", dependencies: [

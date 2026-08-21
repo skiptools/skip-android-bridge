@@ -21,18 +21,25 @@ public class AssetURLProtocol: URLProtocol {
         if registered { return }
 
         _ = URLProtocol.registerClass(AssetURLProtocol.self)
+        // Resolve the AssetManager with static JNI rather than AnyDynamicObject: the dynamic
+        // path reflects over the full android.content.Context hierarchy with kotlin-reflect,
+        // costing hundreds of ms of main-thread time at launch
         let context = ProcessInfo.processInfo.dynamicAndroidContext()
-        guard let contextResources: AnyDynamicObject = try context.getResources() else {
-            throw AndroidAssetError(errorDescription: "unable to access context resources")
-        }
-        guard let contextAssetManager: AnyDynamicObject = try contextResources.getAssets() else {
-            throw AndroidAssetError(errorDescription: "unable to access resources assetManager")
-        }
-        guard let jobj = contextAssetManager.toJavaObject(options: []) else {
+        guard let contextObj = context.toJavaObject(options: []) else {
             throw AndroidAssetError(errorDescription: "no value for ProcessInfo.processInfo.dynamicAndroidContext.toJavaObject")
         }
+        let contextClass = try JClass(name: "android/content/Context")
+        guard let getResourcesID = contextClass.getMethodID(name: "getResources", sig: "()Landroid/content/res/Resources;") else {
+            throw AndroidAssetError(errorDescription: "unable to resolve Context.getResources")
+        }
+        let resourcesObj: JavaObjectPointer = try JObject(contextObj).call(method: getResourcesID, options: [], args: [])
+        let resourcesClass = try JClass(name: "android/content/res/Resources")
+        guard let getAssetsID = resourcesClass.getMethodID(name: "getAssets", sig: "()Landroid/content/res/AssetManager;") else {
+            throw AndroidAssetError(errorDescription: "unable to resolve Resources.getAssets")
+        }
+        let assetManagerObj: JavaObjectPointer = try JObject(resourcesObj).call(method: getAssetsID, options: [], args: [])
         let am = JNI.jni.withEnv { intf, env in
-            AndroidAssetManager(env: env, peer: jobj)
+            AndroidAssetManager(env: env, peer: assetManagerObj)
         }
         Self.assetManager = am
         Self.registered = true

@@ -20,12 +20,12 @@ public struct Observation {
         }
 
         public func access<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) where Subject : Observable {
-            bridgeSupport.access(subject, keyPath: keyPath)
+//            bridgeSupport.access(subject, keyPath: keyPath)
             registrar.access(subject, keyPath: keyPath)
         }
 
         public func willSet<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) where Subject : Observable {
-            bridgeSupport.willSet(subject, keyPath: keyPath)
+//            bridgeSupport.willSet(subject, keyPath: keyPath)
             registrar.willSet(subject, keyPath: keyPath)
         }
 
@@ -34,7 +34,7 @@ public struct Observation {
         }
 
         public func withMutation<Subject, Member, T>(of subject: Subject, keyPath: KeyPath<Subject, Member>, _ mutation: () throws -> T) rethrows -> T where Subject : Observable {
-            bridgeSupport.willSet(subject, keyPath: keyPath)
+//            bridgeSupport.willSet(subject, keyPath: keyPath)
             return try registrar.withMutation(of: subject, keyPath: keyPath, mutation)
         }
 

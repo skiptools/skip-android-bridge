@@ -97,8 +97,10 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
             guard FileManager.default.fileExists(atPath: path) else {
                 return nil
             }
-            #endif
+            bundleAccess = BundleAccess(path: Self.hostResourcePath(path))
+            #else
             bundleAccess = BundleAccess(path: path)
+            #endif
         }
         guard let bundleAccess else {
             return nil
@@ -115,25 +117,87 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
             super.init(path: url.path)!
             return
         }
+        // The swiftbuild build system's synthesized Bundle.module property probes for
+        // <Bundle.main.resourceURL>/<package-name>_<module-name>.bundle, so re-map that to the module's
+        // Kotlin bundle once the module has registered it through the Bundle(for:) probe
+        if let moduleBundle = Self.registeredModuleBundle(forBundleName: url.lastPathComponent) {
+            self.bundleAccess = BundleAccess(moduleBundle())
+        } else {
+            self.bundleAccess = BundleAccess(url: url)
+        }
+        #else
+        // As with `init?(path:)`, return nil for missing paths on the host (matching Foundation) so the
+        // SwiftPM resource accessor moves on to its next candidate location.
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            return nil
+        }
+        self.bundleAccess = BundleAccess(path: Self.hostResourcePath(url.path))
         #endif
-        self.bundleAccess = BundleAccess(url: url)
         super.init(path: Self.backingBundlePath())!
     }
+
+    #if !os(Android)
+    /// swiftbuild emits macOS-style resource bundles on the host (`<name>.bundle/Contents/Resources/…`),
+    /// whereas the Kotlin `skip.foundation.Bundle` reads resources relative to the bundle root, so point it
+    /// at the `Contents/Resources` folder when there is one.
+    private static func hostResourcePath(_ path: String) -> String {
+        let resourcesPath = path + "/Contents/Resources"
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: resourcesPath, isDirectory: &isDirectory), isDirectory.boolValue {
+            return resourcesPath
+        }
+        return path
+    }
+    #endif
 
     // These inits require 'override' on Android but not iOS or ROBOLECTRIC.
     // They must not be marked unavailable because the auto-generated
     // resource_bundle_accessor.swift (produced by the swiftbuild build system)
     // calls Bundle(for: BundleFinder.self) as part of its fallback chain.
     #if os(Android)
-    public override init(for aClass: AnyClass) {
+    /// This constructor accepts extra parameters so that the module's synthesized `Bundle.module` property
+    /// (whose `Bundle(for:)` probe is intercepted by the module's generated `Bundle_Support.swift`) can register the
+    /// module's Kotlin bundle, which `init?(url:)` then returns for the `<package-name>_<module-name>.bundle` probe.
+    ///
+    /// The defaulted parameters (rather than an override of `init(for:)`) are what allow the module's interceptor
+    /// to take precedence over this initializer.
+    ///
+    /// - Parameters:
+    ///   - Parameter moduleName: The name of the module constructing this instance.
+    ///   - Parameter moduleBundle: A block to invoke to receive the module's `skip.foundation.Bundle`.
+    public init(for aClass: AnyClass, moduleName: String? = nil, moduleBundle: (@Sendable () -> AnyDynamicObject)? = nil) {
         // No-JVM fallback: back with the native Foundation main bundle (the executable's directory).
         if !isJNIInitialized {
             self.bundleAccess = nil
             super.init(path: Foundation.Bundle.main.bundlePath)!
             return
         }
-        self.bundleAccess = BundleAccess.main
+        if let moduleName, let moduleBundle {
+            Self.registerModuleBundle(moduleName: moduleName, moduleBundle: moduleBundle)
+            self.bundleAccess = BundleAccess(moduleBundle())
+        } else {
+            self.bundleAccess = BundleAccess.main
+        }
         super.init(path: Self.backingBundlePath())!
+    }
+
+    private static let moduleBundlesLock = NSLock()
+    nonisolated(unsafe) private static var moduleBundles: [String: @Sendable () -> AnyDynamicObject] = [:]
+
+    private static func registerModuleBundle(moduleName: String, moduleBundle: @escaping @Sendable () -> AnyDynamicObject) {
+        moduleBundlesLock.lock()
+        defer { moduleBundlesLock.unlock() }
+        moduleBundles[moduleName] = moduleBundle
+    }
+
+    /// Returns the registered module bundle for the swiftbuild resource bundle name `<package-name>_<module-name>.bundle`.
+    private static func registeredModuleBundle(forBundleName bundleName: String) -> (@Sendable () -> AnyDynamicObject)? {
+        guard bundleName.hasSuffix(".bundle") else {
+            return nil
+        }
+        moduleBundlesLock.lock()
+        defer { moduleBundlesLock.unlock() }
+        return moduleBundles.first(where: { bundleName.hasSuffix("_" + $0.key + ".bundle") })?.value
     }
 
     public override init?(identifier: String) {
@@ -143,6 +207,14 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
             return
         }
         self.bundleAccess = BundleAccess.main
+        super.init(path: Self.backingBundlePath())!
+    }
+    #elseif ROBOLECTRIC
+    // Foundation's `Bundle(for:)` is a convenience init here, which this subclass does not inherit.
+    // The swiftbuild resource accessor looks for `<pkg>_<module>.bundle` in this bundle's resourceURL,
+    // so back it with the directory that contains the class's library, as Foundation does.
+    public init(for aClass: AnyClass) {
+        self.bundleAccess = BundleAccess(path: Foundation.Bundle(for: aClass).bundlePath)
         super.init(path: Self.backingBundlePath())!
     }
     #endif

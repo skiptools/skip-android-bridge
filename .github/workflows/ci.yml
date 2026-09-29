@@ -16,4 +16,9 @@ jobs:
     uses: skiptools/actions/.github/workflows/skip-framework.yml@v1
     with:
       runs-on: "['macos-15-intel', 'ubuntu-24.04']"
+      # Swift 6.4's default swiftbuild build system makes it an error for a static library product
+      # (e.g., SkipLib) to be linked into more than one dynamic product (e.g., SkipBridge), so build
+      # the Skip library products dynamically for the local host tests
+      env: |
+        SKIP_DYNAMIC_LIBRARIES=1
       #swift-android-sdk-version: "['', 'nightly-main']"

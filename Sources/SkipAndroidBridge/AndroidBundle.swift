@@ -85,6 +85,12 @@ open class AndroidBundle : Foundation.Bundle, @unchecked Sendable {
             let mainBundlePath = Self.main.bundlePath
             if basePath == mainBundlePath && fileName.hasSuffix("_" + moduleName + ".resources") {
                 bundleAccess = BundleAccess(moduleBundle())
+                #if os(Android)
+                // Skip's generated Bundle(for:) interceptor resolves the module through this initializer, so register
+                // the module bundle here too for the swiftbuild <package-name>_<module-name>.bundle probe in init?(url:)
+                nonisolated(unsafe) let moduleBundle = moduleBundle
+                Self.registerModuleBundle(moduleName: moduleName, moduleBundle: { moduleBundle() })
+                #endif
             }
         }
         if bundleAccess == nil {

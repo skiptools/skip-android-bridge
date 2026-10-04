@@ -118,7 +118,6 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
     }
 
     func testStringLocalized() throws {
-        #if os(Android) || ROBOLECTRIC || canImport(Darwin)
         if isRobolectric {
             throw XCTSkip("Robolectric on a Darwin host runs Foundation's String(localized:), which does not read the AndroidBundle strings")
         }
@@ -129,9 +128,6 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         XCTAssertEqual(localizedDefaultValue(name: "Ann"), "Welcome back, Ann")
         XCTAssertEqual(localizedDynamicKey("Hello"), "Hello, World")
         XCTAssertEqual(localizedDynamicKey("Missing"), "Missing")
-        #else
-        throw XCTSkip("String(localized:) is unavailable in linux-gnu Foundation")
-        #endif
     }
 
     // not working yet…

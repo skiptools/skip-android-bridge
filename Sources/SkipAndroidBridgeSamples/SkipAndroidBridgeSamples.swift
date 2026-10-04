@@ -56,8 +56,6 @@ public func localizedStringResourceInterpolatedKey() -> String {
     return interpolation.key
 }
 
-// String(localized:) is unavailable in linux-gnu Foundation (skip export host pass)
-#if os(Android) || ROBOLECTRIC || canImport(Darwin)
 public func localizedLiteral() -> String {
     String(localized: "Hello", bundle: .module)
 }
@@ -81,7 +79,6 @@ public func localizedDefaultValue(name: String) -> String {
 public func localizedDynamicKey(_ key: String) -> String {
     String(localized: String.LocalizationValue(key), bundle: .module)
 }
-#endif
 
 public func mainActorAsyncValue() async -> String {
     await Task.detached {

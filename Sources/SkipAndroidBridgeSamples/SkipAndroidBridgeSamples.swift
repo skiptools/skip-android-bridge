@@ -56,6 +56,33 @@ public func localizedStringResourceInterpolatedKey() -> String {
     return interpolation.key
 }
 
+// String(localized:) is unavailable in linux-gnu Foundation (skip export host pass)
+#if os(Android) || ROBOLECTRIC || canImport(Darwin)
+public func localizedLiteral() -> String {
+    String(localized: "Hello", bundle: .module)
+}
+
+public func localizedLiteralWithPercent() -> String {
+    String(localized: "100% done", bundle: .module)
+}
+
+public func localizedInterpolated(name: String, count: Int) -> String {
+    String(localized: "\(name) and \(count) more", bundle: .module)
+}
+
+public func localizedInterpolatedUntranslated(count: Int) -> String {
+    String(localized: "\(count)% untranslated", bundle: .module)
+}
+
+public func localizedDefaultValue(name: String) -> String {
+    String(localized: "greeting", defaultValue: "Hi \(name)", bundle: .module)
+}
+
+public func localizedDynamicKey(_ key: String) -> String {
+    String(localized: String.LocalizationValue(key), bundle: .module)
+}
+#endif
+
 public func mainActorAsyncValue() async -> String {
     await Task.detached {
         await MainActorClass().mainActorValue()

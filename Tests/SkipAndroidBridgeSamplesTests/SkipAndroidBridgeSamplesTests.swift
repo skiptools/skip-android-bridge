@@ -130,6 +130,19 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         XCTAssertEqual(localizedDynamicKey("Missing"), "Missing")
     }
 
+    func testStringLocalizedPlural() throws {
+        if isRobolectric {
+            throw XCTSkip("Robolectric on a Darwin host runs Foundation's String(localized:), which does not read the AndroidBundle strings")
+        }
+        #if !canImport(Darwin) && !os(Android)
+        throw XCTSkip("swift-corelibs-foundation does not apply .stringsdict plural rules")
+        #else
+        XCTAssertEqual(localizedPlural(count: 0), "No files")
+        XCTAssertEqual(localizedPlural(count: 1), "1 file")
+        XCTAssertEqual(localizedPlural(count: 2), "2 files")
+        #endif
+    }
+
     // not working yet…
 //    func testMainActorAsync() async throws {
 //        let value = await mainActorAsyncValue()

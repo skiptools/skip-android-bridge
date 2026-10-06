@@ -75,7 +75,8 @@ extension AndroidStringInterpolation {
 
 private func androidLocalizedString(key: String, interpolation: AndroidStringInterpolation, table: String?, bundle: AndroidLocalizationBundle?, locale: Locale) -> String {
     #if os(Android) || ROBOLECTRIC
-    let localized = AndroidLocalizedString()(key, tableName: table, bundle: bundle, value: interpolation.localizationKey, comment: "")
+    let found = AndroidLocalizedString()(key, tableName: table, bundle: bundle, value: interpolation.localizationKey, comment: "")
+    let localized = pluralVariation(of: found, for: interpolation.values.first) ?? found
     #else
     let localized = (bundle ?? .main).localizedString(forKey: key, value: interpolation.localizationKey, table: table)
     #endif
@@ -85,5 +86,48 @@ private func androidLocalizedString(key: String, interpolation: AndroidStringInt
     let arguments = interpolation.values.map { $0 as? CVarArg ?? String(describing: $0) }
     return String(format: localized, locale: locale, arguments: arguments)
 }
+
+#if os(Android) || ROBOLECTRIC
+/// `skip.foundation.Bundle` loads a `.stringsdict` plural entry (which Skip generates from `.xcstrings` plural variations)
+/// as an ICU pattern such as `{0, plural, one{%lld file} other{%lld files}}`; this selects the variation for the first
+/// interpolated value using the current locale's plural rules, with Darwin's override of `zero` for exactly 0.
+private func pluralVariation(of pattern: String, for value: Any?) -> String? {
+    let prefix = "{0, plural, "
+    guard pattern.hasPrefix(prefix), pattern.hasSuffix("}") else {
+        return nil
+    }
+    let number: Double
+    switch value {
+    case let value as any BinaryInteger: number = Double(value)
+    case let value as any BinaryFloatingPoint: number = Double(value)
+    default: return nil
+    }
+    var variations: [String: String] = [:]
+    var category = ""
+    var text = ""
+    var depth = 0
+    for character in pattern.dropFirst(prefix.count).dropLast() {
+        if depth == 0 {
+            if character == "{" {
+                depth = 1
+            } else if character != " " {
+                category.append(character)
+            }
+        } else if character == "}" && depth == 1 {
+            variations[category] = text
+            category = ""
+            text = ""
+            depth = 0
+        } else {
+            depth += character == "{" ? 1 : character == "}" ? -1 : 0
+            text.append(character)
+        }
+    }
+    if number == 0, let zero = variations["=0"] {
+        return zero
+    }
+    return variations[PluralCategoryAccess(number)] ?? variations["other"]
+}
+#endif
 
 #endif

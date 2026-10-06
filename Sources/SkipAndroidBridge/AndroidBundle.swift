@@ -653,6 +653,12 @@ public func NSLocalizedStringAccess(_ key: String, tableName: String? = nil, bun
     return NSLocalizedString(key, tableName: tableName, bundle: bundle?.bundle, value: value, comment: comment)
 }
 
+/// The CLDR plural category (`zero`, `one`, `two`, `few`, `many` or `other`) of `number` in the current locale,
+/// which is also the locale `NSLocalizedStringAccess` resolves its table with.
+public func PluralCategoryAccess(_ number: Double) -> String {
+    return android.icu.text.PluralRules.forLocale(java.util.Locale.getDefault()).select(number)
+}
+
 #endif
 #endif
 #endif

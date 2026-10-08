@@ -653,10 +653,9 @@ public func NSLocalizedStringAccess(_ key: String, tableName: String? = nil, bun
     return NSLocalizedString(key, tableName: tableName, bundle: bundle?.bundle, value: value, comment: comment)
 }
 
-/// The CLDR plural category (`zero`, `one`, `two`, `few`, `many` or `other`) of `number` in the current locale,
-/// which is also the locale `NSLocalizedStringAccess` resolves its table with.
-public func PluralCategoryAccess(_ number: Double) -> String {
-    return android.icu.text.PluralRules.forLocale(java.util.Locale.getDefault()).select(number)
+/// Formats a `.stringsdict` plural entry, which `skip.foundation.Bundle` loads as an ICU pattern, for `count`.
+public func LocalizedStringWithFormatAccess(_ format: String, count: Int64) -> String {
+    return String.localizedStringWithFormat(format, count)
 }
 
 #endif

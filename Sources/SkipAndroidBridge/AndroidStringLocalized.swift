@@ -82,7 +82,14 @@ private func androidLocalizedString(key: String, interpolation: AndroidStringInt
     guard !interpolation.values.isEmpty else {
         return localized
     }
-    let arguments = interpolation.values.map { $0 as? CVarArg ?? String(describing: $0) }
+    // Int and UInt are keyed as %lld/%llu, which read 64 bits, so widen them for 32-bit ABIs
+    let arguments = interpolation.values.map { value -> CVarArg in
+        switch value {
+        case let int as Int: return Int64(int)
+        case let uint as UInt: return UInt64(uint)
+        default: return value as? CVarArg ?? String(describing: value)
+        }
+    }
     return String(format: localized, locale: locale, arguments: arguments)
 }
 

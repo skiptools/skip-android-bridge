@@ -653,6 +653,11 @@ public func NSLocalizedStringAccess(_ key: String, tableName: String? = nil, bun
     return NSLocalizedString(key, tableName: tableName, bundle: bundle?.bundle, value: value, comment: comment)
 }
 
+/// Formats a `.stringsdict` plural entry, which `skip.foundation.Bundle` loads as an ICU pattern, for `count`.
+public func LocalizedStringWithFormatAccess(_ format: String, count: Int64) -> String {
+    return String.localizedStringWithFormat(format, count)
+}
+
 #endif
 #endif
 #endif

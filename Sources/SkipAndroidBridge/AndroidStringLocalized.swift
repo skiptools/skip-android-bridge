@@ -76,6 +76,10 @@ extension AndroidStringInterpolation {
 private func androidLocalizedString(key: String, interpolation: AndroidStringInterpolation, table: String?, bundle: AndroidLocalizationBundle?, locale: Locale) -> String {
     #if os(Android) || ROBOLECTRIC
     let localized = AndroidLocalizedString()(key, tableName: table, bundle: bundle, value: interpolation.localizationKey, comment: "")
+    // skip.foundation.Bundle loads a .stringsdict plural entry as an ICU pattern keyed on its single count.
+    if localized.hasPrefix("{0, plural,"), interpolation.values.count == 1, let count = interpolation.values[0] as? any BinaryInteger {
+        return LocalizedStringWithFormatAccess(localized, count: Int64(count))
+    }
     #else
     let localized = (bundle ?? .main).localizedString(forKey: key, value: interpolation.localizationKey, table: table)
     #endif

@@ -72,6 +72,10 @@ public func localizedInterpolatedUntranslated(count: Int) -> String {
     String(localized: "\(count)% untranslated", bundle: .module)
 }
 
+public func localizedPlural(count: Int) -> String {
+    String(localized: "\(count) files", bundle: .module)
+}
+
 public func localizedDefaultValue(name: String) -> String {
     String(localized: "greeting", defaultValue: "Hi \(name)", bundle: .module)
 }

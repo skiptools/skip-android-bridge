@@ -97,8 +97,11 @@ public class AndroidBridgeBootstrap {
         try AssetURLProtocol.register()
         logger.debug("initAndroidBridge: bootstrapTimezone")
         try bootstrapTimezone()
+        #if !compiler(>=6.3)
+        // Swift 6.3+ FoundationNetworking points libcurl at the Android CA directory itself (swiftlang/swift-corelibs-foundation#5283)
         logger.debug("initAndroidBridge: setupCACerts")
         try AndroidBootstrap.setupCACerts()
+        #endif
         logger.debug("initAndroidBridge: AndroidLooper.setupMainLooper")
         let _ = AndroidLooper.setupMainLooper()
         logger.debug("initAndroidBridge: done")

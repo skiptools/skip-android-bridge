@@ -110,18 +110,24 @@ public class AndroidBridgeBootstrap {
     }
 }
 
+#if os(Android)
 private func bootstrapTimezone() throws {
-    // Until https://github.com/swiftlang/swift-foundation/pull/1053 gets merged
+    // Android has no /etc/localtime and doesn't set $TZ for app processes; bionic reads the
+    // system time zone from the `persist.sys.timezone` property instead, which Foundation's
+    // TimeZone.current doesn't know about (it would fall back to GMT).
+    //
+    // Hand the Olson ID (e.g. "Europe/Berlin") to Foundation and libc via $TZ. Don't use
+    // `localtime_r(...).tm_zone` here: that's only the abbreviation (e.g. "CEST"), which as a
+    // POSIX TZ string has no offset and turns libc's localtime (and DateFormatter) into UTC.
+    if getenv("TZ") != nil { return }
+    var value = [CChar](repeating: 0, count: 92) // PROP_VALUE_MAX from <sys/system_properties.h>
+    guard __system_property_get("persist.sys.timezone", &value) > 0 else { return }
+    let name = String(cString: value)
+    logger.debug("bootstrapTimezone: \(name)")
+    setenv("TZ", name, 0)
     tzset()
-    var t = time(nil)
-    var lt : tm = tm()
-    localtime_r(&t, &lt)
-    if let zoneptr = lt.tm_zone, let name = String(validatingUTF8: zoneptr) {
-        //logger.debug("detected timezone: \(name)")
-        setenv("TZ", name, 0)
-    }
-
 }
+#endif
 
 private func bootstrapFileManagerProperties(filesDir: String, cacheDir: String) throws {
     // https://github.com/swiftlang/swift-foundation/blob/main/Sources/FoundationEssentials/FileManager/SearchPaths/FileManager%2BXDGSearchPaths.swift#L46

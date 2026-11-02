@@ -252,33 +252,6 @@ fileprivate func gatingWriteValue() -> Double {
 fileprivate var gatingModel: ObservedSampleModel {
     return gatingModelStorage as! ObservedSampleModel
 }
-
-/// Carries a run loop block and its results; it only ever runs on the current thread.
-fileprivate final class RunLoopProbe: @unchecked Sendable {
-    let body: () -> Void
-    var ran = false
-    var wasActive = false
-
-    init(_ body: @escaping () -> Void) {
-        self.body = body
-    }
-}
-
-/// Runs `body` inside a run of the current thread's run loop, observed like the main thread's.
-fileprivate func inObservedRunLoop(_ body: @escaping () -> Void) -> String {
-    MainRunLoopDrain.observeCurrentRunLoop()
-    let probe = RunLoopProbe(body)
-    RunLoop.current.perform {
-        probe.wasActive = MainRunLoopDrain.isActive
-        probe.body()
-        probe.ran = true
-    }
-    let _ = RunLoop.current.run(mode: .default, before: Date())
-    guard probe.ran else { return "run loop did not run the block" }
-    guard probe.wasActive else { return "MainRunLoopDrain was not active inside the run loop" }
-    guard !MainRunLoopDrain.isActive else { return "MainRunLoopDrain still active after the run loop" }
-    return ""
-}
 #endif
 
 public func testSupport_gatingReset() {
@@ -302,24 +275,6 @@ public func testSupport_gatingWrite() {
     #endif
 }
 
-public func testSupport_gatingReadInRunLoop() -> String {
-    #if SKIP_BRIDGE
-    guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else { return "unavailable" }
-    return inObservedRunLoop { let _ = gatingModel.first }
-    #else
-    return "not built for bridging"
-    #endif
-}
-
-public func testSupport_gatingWriteInRunLoop() -> String {
-    #if SKIP_BRIDGE
-    guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else { return "unavailable" }
-    return inObservedRunLoop { gatingModel.first = gatingWriteValue() }
-    #else
-    return "not built for bridging"
-    #endif
-}
-
 public func testSupport_gatingWriteOnBackgroundThread() {
     #if SKIP_BRIDGE
     guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else { return }
@@ -332,9 +287,7 @@ public func testSupport_gatingWriteOnBackgroundThread() {
     #endif
 }
 
-/// Mean nanoseconds per observed-property read and write, for a read Kotlin may observe (JNI)
-/// against one inside an observed run loop, and a write to a slot Kotlin read (JNI) against one
-/// to a slot it never read.
+/// Mean nanoseconds per observed-property write, to a slot Kotlin read (JNI) against one it never read.
 public func testSupport_gatingBenchmark() -> String {
     #if SKIP_BRIDGE
     guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else { return "unavailable" }
@@ -345,12 +298,10 @@ public func testSupport_gatingBenchmark() -> String {
         for _ in 0..<iterations { body() }
         return Int(DispatchTime.now().uptimeNanoseconds - start) / iterations
     }
-    let crossingRead = nanosPerCall { let _ = model.first }
-    var drainRead = 0
-    let _ = inObservedRunLoop { drainRead = nanosPerCall { let _ = model.second } }
+    let _ = model.first
     let trackedWrite = nanosPerCall { model.first = gatingWriteValue() }
     let untrackedWrite = nanosPerCall { model.third = gatingWriteValue() }
-    return "read via JNI \(crossingRead) ns, read in run loop \(drainRead) ns, write to Kotlin-read slot \(trackedWrite) ns, write to never-read slot \(untrackedWrite) ns"
+    return "write to Kotlin-read slot \(trackedWrite) ns, write to never-read slot \(untrackedWrite) ns"
     #else
     return "not built for bridging"
     #endif

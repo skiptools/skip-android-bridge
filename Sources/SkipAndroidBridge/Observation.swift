@@ -9,14 +9,6 @@ import FoundationEssentials
 import Foundation
 #endif
 import Dispatch
-import CoreFoundation
-#if canImport(Darwin)
-import Darwin
-#elseif canImport(Android)
-import Android
-#elseif canImport(Glibc)
-import Glibc
-#endif
 
 public struct Observation {
     @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
@@ -82,51 +74,13 @@ public enum BridgedObservationProvenance {
     nonisolated(unsafe) public static var recordRead: ((Any) -> Void)?
 }
 
-/// Marks the threads that are running a run loop observed with `observeCurrentRunLoop()`.
-///
-/// `AndroidBridgeBootstrap` observes the main thread's run loop, which the main `Looper` runs
-/// from a file-descriptor callback to drain the main dispatch queue (`DispatchQueue.main`
-/// blocks, `MainActor` jobs, run loop timers). No Kotlin frame sits below that callback, so no
-/// Compose snapshot read observer can be active and bridged observable reads made there skip the
-/// JNI round trip to `MutableStateBacking`, as stock Observation skips untracked reads.
-///
-/// Limitation: a main-queue block that synchronously calls Kotlin code that composes or observes
-/// snapshot reads, which then reads a bridged observable, is not recorded by Compose.
-public enum MainRunLoopDrain {
-    private static let depthKey: pthread_key_t = {
-        var key = pthread_key_t()
-        pthread_key_create(&key, nil)
-        return key
-    }()
-
-    /// Whether the current thread is inside a run of an observed run loop.
-    public static var isActive: Bool {
-        return pthread_getspecific(depthKey) != nil
-    }
-
-    /// Observe the current thread's run loop so that `isActive` is true while it runs.
-    public static func observeCurrentRunLoop() {
-        let entry: CFOptionFlags = 1 << 0
-        let exit: CFOptionFlags = 1 << 7
-        let observer = CFRunLoopObserverCreate(nil, entry | exit, true, 0, { _, activity, _ in
-            let depth = Int(bitPattern: pthread_getspecific(MainRunLoopDrain.depthKey)) + (activity.rawValue == 1 << 0 ? 1 : -1)
-            pthread_setspecific(MainRunLoopDrain.depthKey, UnsafeRawPointer(bitPattern: depth))
-        }, nil)
-        #if canImport(Darwin)
-        CFRunLoopAddObserver(CFRunLoopGetCurrent(), observer, .commonModes)
-        #else
-        CFRunLoopAddObserver(CFRunLoopGetCurrent(), observer, kCFRunLoopCommonModes)
-        #endif
-    }
-}
-
 private final class BridgeObservationSupport: @unchecked Sendable {
     init() {
     }
 
     public func access<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) {
         recordProvenanceRead(at: keyPath)
-        guard !MainRunLoopDrain.isActive, let index = Java_index(forKeyPath: keyPath, assigning: true) else {
+        guard let index = Java_index(forKeyPath: keyPath, assigning: true) else {
             return
         }
         Java_access(index)
@@ -136,8 +90,8 @@ private final class BridgeObservationSupport: @unchecked Sendable {
         stampProvenance(at: keyPath)
     }
 
-    /// Updates the Kotlin peer after the write, so that a slot first read by Kotlin while another
-    /// thread is mid-write is either updated here or already sees the written value.
+    /// Updates the Kotlin peer after the write, so that a write racing the read that assigns its
+    /// slot is either updated here or already seen by that read.
     public func didSet<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) {
         guard let index = Java_index(forKeyPath: keyPath, assigning: false) else {
             return
@@ -192,8 +146,8 @@ private final class BridgeObservationSupport: @unchecked Sendable {
     private var Java_peer: JObject?
     private var Java_hasInitialized = false
 
-    /// The key path's slot in the Kotlin peer. Slots are assigned by the first read that Kotlin
-    /// could be observing, so a write to a property Compose never read does not cross JNI.
+    /// The key path's slot in the Kotlin peer. Slots are assigned by the first read, so a write to
+    /// a property that was never read does not cross JNI.
     private func Java_index(forKeyPath keyPath: AnyKeyPath, assigning: Bool) -> Int? {
         lock.wait()
         defer { lock.signal() }

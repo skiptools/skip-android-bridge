@@ -100,32 +100,11 @@ final class ObservationSamplesTests: XCTestCase {
         #endif
     }
 
-    func testReadInRunLoopSkipsCompose() throws {
-        #if !SKIP
-        throw XCTSkip("bridged Observation only runs on Android/Robolectric")
-        #else
-        testSupport_gatingReset()
-        var failure = "not run"
-        XCTAssertEqual(0, composeReads { failure = testSupport_gatingReadInRunLoop() })
-        XCTAssertEqual("", failure)
-        #endif
-    }
-
     func testWriteToNeverReadPropertySkipsCompose() throws {
         #if !SKIP
         throw XCTSkip("bridged Observation only runs on Android/Robolectric")
         #else
         testSupport_gatingReset()
-        XCTAssertEqual(0, composeWrites { testSupport_gatingWrite() })
-        #endif
-    }
-
-    func testReadInRunLoopDoesNotTrackProperty() throws {
-        #if !SKIP
-        throw XCTSkip("bridged Observation only runs on Android/Robolectric")
-        #else
-        testSupport_gatingReset()
-        XCTAssertEqual("", testSupport_gatingReadInRunLoop())
         XCTAssertEqual(0, composeWrites { testSupport_gatingWrite() })
         #endif
     }
@@ -137,18 +116,6 @@ final class ObservationSamplesTests: XCTestCase {
         testSupport_gatingReset()
         testSupport_gatingRead()
         XCTAssertEqual(1, composeWrites { testSupport_gatingWrite() })
-        #endif
-    }
-
-    func testWriteInRunLoopToReadPropertyReachesCompose() throws {
-        #if !SKIP
-        throw XCTSkip("bridged Observation only runs on Android/Robolectric")
-        #else
-        testSupport_gatingReset()
-        testSupport_gatingRead()
-        var failure = "not run"
-        XCTAssertEqual(1, composeWrites { failure = testSupport_gatingWriteInRunLoop() })
-        XCTAssertEqual("", failure)
         #endif
     }
 

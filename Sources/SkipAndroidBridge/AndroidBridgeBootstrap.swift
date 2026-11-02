@@ -104,9 +104,6 @@ public class AndroidBridgeBootstrap {
         #endif
         logger.debug("initAndroidBridge: AndroidLooper.setupMainLooper")
         let _ = AndroidLooper.setupMainLooper()
-        #if SKIP_BRIDGE
-        MainRunLoopDrain.observeCurrentRunLoop()
-        #endif
         logger.debug("initAndroidBridge: done")
         #endif
         logger.debug("AndroidBridgeBootstrap.initAndroidBridge done in \(Date.now.timeIntervalSince(start)) applicationSupportDirectory=\(URL.applicationSupportDirectory.path)")

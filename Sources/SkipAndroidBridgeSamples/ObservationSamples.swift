@@ -22,6 +22,7 @@ import Observation
 fileprivate final class ObservedSampleModel {
     var first = 0.0
     var second = 0.0
+    var third = 0.0
 }
 
 /// Mutable counter that `@Sendable` onChange closures may capture.
@@ -225,6 +226,81 @@ public func testSupport_observationTrackingIgnoresUntrackedProperty() -> String 
     model.first = 1.0
     guard changes.count == 1 else { return "mutating the tracked property should fire onChange, got \(changes.count)" }
     return ""
+    #else
+    return "not built for bridging"
+    #endif
+}
+
+// MARK: - JNI gating
+
+// The transpiled `ObservationSamplesTests` drive these steps one at a time and count, with
+// Compose's own snapshot observers, which reads and writes reached `MutableStateBacking`.
+
+#if SKIP_BRIDGE
+nonisolated(unsafe) fileprivate var gatingModelStorage: AnyObject? = nil
+
+nonisolated(unsafe) fileprivate var gatingWrites = 0.0
+
+/// A fresh value per write, set by plain assignment: `+=` goes through `_modify`, which reads.
+fileprivate func gatingWriteValue() -> Double {
+    gatingWrites += 1.0
+    return gatingWrites
+}
+
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+fileprivate var gatingModel: ObservedSampleModel {
+    return gatingModelStorage as! ObservedSampleModel
+}
+#endif
+
+public func testSupport_gatingReset() {
+    #if SKIP_BRIDGE
+    guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else { return }
+    gatingModelStorage = ObservedSampleModel()
+    #endif
+}
+
+public func testSupport_gatingRead() {
+    #if SKIP_BRIDGE
+    guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else { return }
+    let _ = gatingModel.first
+    #endif
+}
+
+public func testSupport_gatingWrite() {
+    #if SKIP_BRIDGE
+    guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else { return }
+    gatingModel.first = gatingWriteValue()
+    #endif
+}
+
+public func testSupport_gatingWriteOnBackgroundThread() {
+    #if SKIP_BRIDGE
+    guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else { return }
+    let done = DispatchSemaphore(value: 0)
+    Thread {
+        gatingModel.first = gatingWriteValue()
+        done.signal()
+    }.start()
+    done.wait()
+    #endif
+}
+
+/// Mean nanoseconds per observed-property write, to a slot Kotlin read (JNI) against one it never read.
+public func testSupport_gatingBenchmark() -> String {
+    #if SKIP_BRIDGE
+    guard #available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) else { return "unavailable" }
+    let iterations = 100_000
+    let model = ObservedSampleModel()
+    func nanosPerCall(_ body: () -> Void) -> Int {
+        let start = DispatchTime.now().uptimeNanoseconds
+        for _ in 0..<iterations { body() }
+        return Int(DispatchTime.now().uptimeNanoseconds - start) / iterations
+    }
+    let _ = model.first
+    let trackedWrite = nanosPerCall { model.first = gatingWriteValue() }
+    let untrackedWrite = nanosPerCall { model.third = gatingWriteValue() }
+    return "write to Kotlin-read slot \(trackedWrite) ns, write to never-read slot \(untrackedWrite) ns"
     #else
     return "not built for bridging"
     #endif

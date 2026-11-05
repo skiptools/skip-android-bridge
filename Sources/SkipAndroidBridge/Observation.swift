@@ -30,10 +30,12 @@ public struct Observation {
 
         public func didSet<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) where Subject : Observable {
             registrar.didSet(subject, keyPath: keyPath)
+            bridgeSupport.didSet(subject, keyPath: keyPath)
         }
 
         public func withMutation<Subject, Member, T>(of subject: Subject, keyPath: KeyPath<Subject, Member>, _ mutation: () throws -> T) rethrows -> T where Subject : Observable {
             bridgeSupport.willSet(subject, keyPath: keyPath)
+            defer { bridgeSupport.didSet(subject, keyPath: keyPath) }
             return try registrar.withMutation(of: subject, keyPath: keyPath, mutation)
         }
 
@@ -77,13 +79,22 @@ private final class BridgeObservationSupport: @unchecked Sendable {
 
     public func access<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) {
         recordProvenanceRead(at: keyPath)
-        let index = Java_init(forKeyPath: keyPath)
+        guard let index = Java_index(forKeyPath: keyPath, assigning: true) else {
+            return
+        }
         Java_access(index)
     }
 
     public func willSet<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) {
         stampProvenance(at: keyPath)
-        let index = Java_init(forKeyPath: keyPath)
+    }
+
+    /// Updates the Kotlin peer after the write, so that a write racing the read that assigns its
+    /// slot is either updated here or already seen by that read.
+    public func didSet<Subject, Member>(_ subject: Subject, keyPath: KeyPath<Subject, Member>) {
+        guard let index = Java_index(forKeyPath: keyPath, assigning: false) else {
+            return
+        }
         Java_update(index)
     }
 
@@ -134,17 +145,27 @@ private final class BridgeObservationSupport: @unchecked Sendable {
     private var Java_peer: JObject?
     private var Java_hasInitialized = false
 
-    private func Java_init(forKeyPath keyPath: AnyKeyPath) -> Int {
+    /// The key path's slot in the Kotlin peer. Slots are assigned by the first read, so a write to
+    /// a property that was never read does not cross JNI.
+    private func Java_index(forKeyPath keyPath: AnyKeyPath, assigning: Bool) -> Int? {
         lock.wait()
         defer { lock.signal() }
+        if let index = indexes[keyPath] {
+            return index
+        }
+        guard assigning else {
+            return nil
+        }
         if !Java_hasInitialized {
             Java_hasInitialized = true
             Java_peer = Java_initPeer()
         }
         guard Java_peer != nil else {
-            return 0
+            return nil
         }
-        return index(forKeyPath: keyPath)
+        let index = indexes.count
+        indexes[keyPath] = index
+        return index
     }
 
     private func Java_initPeer() -> JObject? {
@@ -186,15 +207,6 @@ private final class BridgeObservationSupport: @unchecked Sendable {
 
     private let lock = DispatchSemaphore(value: 1)
     private var indexes: [AnyKeyPath: Int] = [:]
-
-    private func index(forKeyPath keyPath: AnyKeyPath) -> Int {
-        if let index = indexes[keyPath] {
-            return index
-        }
-        let nextIndex = indexes.count
-        indexes[keyPath] = nextIndex
-        return nextIndex
-    }
 }
 
 

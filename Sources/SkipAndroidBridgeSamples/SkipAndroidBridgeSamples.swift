@@ -30,6 +30,10 @@ public func userDefaultsClassName() -> String {
     "\(UserDefaults.standard)"
 }
 
+public func getStandardUserDefaults() -> Any {
+    UserDefaults.standard
+}
+
 public func getStringDefault(name: String) -> String? {
     UserDefaults.standard.string(forKey: name)
 }

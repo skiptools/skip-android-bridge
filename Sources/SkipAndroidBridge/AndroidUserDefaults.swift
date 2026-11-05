@@ -194,7 +194,8 @@ extension AndroidUserDefaults : JObjectProtocol, JConvertible {
 
 /// This bridged class gives us efficient access to `skip.foundation.UserDefaults` without bridging it to native.
 public class UserDefaultsAccess {
-    let userDefaults: skip.foundation.UserDefaults
+    // JNI looks up getUserDefaults by name; Kotlin mangles internal accessors.
+    public let userDefaults: skip.foundation.UserDefaults
 
     // Fully-qualify the name here so that it bridges to AnyDynamicObject
     public init(_ userDefaults: skip.foundation.UserDefaults) {

@@ -102,6 +102,16 @@ final class SkipAndroidBridgeSamplesTests: XCTestCase {
         XCTAssertEqual(nil, getStringDefault(name: "test"))
     }
 
+    func testUserDefaultsReturnedFromNativeSwift() throws {
+        // Returning a native defaults instance exercises its conversion back to Kotlin.
+        let defaults = try XCTUnwrap(getStandardUserDefaults() as? UserDefaults)
+        let key = "native-defaults-projection-\(UUID().uuidString)"
+        defer { defaults.removeObject(forKey: key) }
+
+        defaults.set("projected value", forKey: key)
+        XCTAssertEqual("projected value", getStringDefault(name: key))
+    }
+
     func testAndroidContext() throws {
         if !isAndroid {
             throw XCTSkip("no package name on Robolectric")

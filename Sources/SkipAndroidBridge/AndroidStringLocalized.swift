@@ -1,5 +1,4 @@
 // Copyright 2026 Skip
-// SPDX-License-Identifier: MPL-2.0
 import Foundation
 // Darwin (including a Robolectric host on macOS) has the real Foundation API
 #if !canImport(Darwin)

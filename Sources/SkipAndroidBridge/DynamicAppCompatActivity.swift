@@ -1,5 +1,4 @@
 // Copyright 2025–2026 Skip
-// SPDX-License-Identifier: MPL-2.0
 
 /// Dynamic representation of `androidx.appcompat.app.AppCompatActivity`.
 public final class DynamicAppCompatActivity : AnyDynamicObject {
